@@ -11,7 +11,9 @@ export default function ImageCarousel({ images, alt, className = "" }) {
   const [isHovered, setIsHovered] = useState(false);
 
   // Filter out empty strings and invalid URLs
-  const validImages = images ? images.filter(img => img && img.trim() !== '') : [];
+  const validImages = images
+    ? images.filter((img) => img && img.trim() !== "")
+    : [];
 
   // Auto-advance carousel
   useEffect(() => {
@@ -25,8 +27,8 @@ export default function ImageCarousel({ images, alt, className = "" }) {
   }, [isPlaying, isHovered, validImages.length]);
 
   const goToPrevious = () => {
-    setCurrentIndex((prevIndex) => 
-      prevIndex === 0 ? validImages.length - 1 : prevIndex - 1
+    setCurrentIndex((prevIndex) =>
+      prevIndex === 0 ? validImages.length - 1 : prevIndex - 1,
     );
   };
 
@@ -44,7 +46,9 @@ export default function ImageCarousel({ images, alt, className = "" }) {
 
   if (!validImages || validImages.length === 0) {
     return (
-      <div className={`w-full h-64 md:h-96 bg-gray-200 rounded flex items-center justify-center ${className}`}>
+      <div
+        className={`w-full h-64 md:h-96 bg-gray-200 rounded flex items-center justify-center ${className}`}
+      >
         <div className="text-center">
           <svg
             className="w-16 h-16 text-gray-400 mx-auto mb-4"
@@ -68,33 +72,49 @@ export default function ImageCarousel({ images, alt, className = "" }) {
   if (validImages.length === 1) {
     return (
       <div className={`relative ${className}`}>
-        <Image
+        {/* <Image
           src={validImages[0]}
           alt={alt}
           width={1200}
           height={600}
           className="w-full h-64 md:h-96 object-cover rounded"
-        />
+        /> */}
+        <div className="relative aspect-video w-full overflow-hidden rounded bg-gray-100">
+          <Image
+            src={validImages[currentIndex]}
+            alt={`${alt} - Image ${currentIndex + 1}`}
+            fill
+            className="w-full object-contain"
+          />
+        </div>
       </div>
     );
   }
 
   return (
-    <div 
+    <div
       className={`relative group ${className}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Main Image */}
       <div className="relative overflow-hidden rounded">
-        <Image
+        {/* <Image
           src={validImages[currentIndex]}
           alt={`${alt} - Image ${currentIndex + 1}`}
           width={1200}
           height={600}
-          className="w-full h-64 md:h-96 object-cover transition-transform duration-500 ease-in-out"
-        />
-        
+          className="w-full h-64 md:h-96 object-cover rounded transition-transform duration-500 ease-in-out"
+        /> */}
+        <div className="relative aspect-video w-full overflow-hidden rounded bg-gray-100">
+          <Image
+            src={validImages[currentIndex]}
+            alt={`${alt} - Image ${currentIndex + 1}`}
+            fill
+            className="w-full object-contain"
+          />
+        </div>
+
         {/* Overlay for controls */}
         <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300" />
       </div>
@@ -128,7 +148,11 @@ export default function ImageCarousel({ images, alt, className = "" }) {
         onClick={togglePlayPause}
         aria-label={isPlaying ? "Pause slideshow" : "Play slideshow"}
       >
-        {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+        {isPlaying ? (
+          <Pause className="h-4 w-4" />
+        ) : (
+          <Play className="h-4 w-4" />
+        )}
       </Button>
 
       {/* Dots Indicator */}

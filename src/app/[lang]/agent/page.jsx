@@ -75,13 +75,13 @@ export default async function RepresentationPage({ params }) {
 
       <section className="mx-auto grid max-w-7xl gap-10 px-5 py-12 sm:px-10 sm:py-16 lg:grid-cols-[minmax(250px,0.65fr)_minmax(0,1.4fr)] lg:items-start lg:gap-12 lg:px-12 lg:py-20">
         <aside className="mx-auto w-full max-w-sm text-center">
-          <div className="relative aspect-4/5 overflow-hidden border-2 border-primary-action bg-primary-bg">
+          <div className="relative aspect-3/2 overflow-hidden border-2 border-primary-action bg-primary-bg">
             <Image
               src={agentInfo?.profilePhoto || "/FootballBank_agent.jpg"}
               alt={`${agentName} portrait`}
               fill
               sizes="(max-width: 1024px) 100vw, 30vw"
-              className="object-cover object-left"
+              className="object-cover object-center"
             />
           </div>
           <h1 className="mt-4 font-heading text-3xl font-semibold leading-none tracking-tight sm:text-4xl">
@@ -115,11 +115,11 @@ export default async function RepresentationPage({ params }) {
         </aside>
 
         <div>
-          <h2 className="font-heading text-3xl font-semibold leading-[1.08] tracking-tight sm:text-4xl">
+          <h2 className="font-heading text-2xl font-semibold leading-[1.08] tracking-tight sm:text-3xl">
             {dict.agentPage.pageHeadingLine1 || "Licensed representation."}<br />{dict.agentPage.pageHeadingLine2 || "Global perspective."}
           </h2>
           <div className="mt-5 border border-divider bg-primary-bg px-5 py-6 sm:px-8 sm:py-7">
-            <p className="max-w-2xl text-lg leading-8 text-primary-text">
+            <p className="max-w-2xl text-base leading-7 text-primary-text">
               {dict.agentPage.bioParagraph ||
                 "Meet the licensed football agent behind FootballBank's representation services. Ayodeji Michael .F is a FIFA Licensed Football Agent and founder of FootballBank International, a United States-based sports management company working across player development, club recruitment, international partnerships and football opportunities."}
             </p>

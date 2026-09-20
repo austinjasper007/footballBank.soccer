@@ -96,7 +96,8 @@ export default async function BlogPage({ params }) {
     <main className="w-full">
       {/* Breadcrumb Section */}
       <section 
-        className="w-full h-64 relative py-16 overflow-hidden bg-cover bg-center bg-no-repeat bg-[url('/blog-breadcrumb.jpg')] " 
+        // className="w-full h-64 relative py-16 overflow-hidden bg-cover bg-center bg-no-repeat bg-[url('/blog-breadcrumb.jpg')] " 
+        className="w-full h-50 relative py-10 overflow-hidden bg-cover bg-center bg-no-repeat bg-[url('/ball-bg.jpg')] " 
       >
         {/* Background overlay for better text readability */}
         <div className="absolute inset-0 bg-primary-navy/55"></div>

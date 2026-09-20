@@ -42,6 +42,8 @@ export default function SubmissionsView({ refreshPulse = 0 }) {
   const [activeTab, setActiveTab] = useState("pending");
 
   useEffect(() => {
+    if (detailDialogOpen) return;
+    if (selectedSubmission) return;
     const fetchSubmissions = async () => {
       try {
         setIsLoading(true);
@@ -54,7 +56,7 @@ export default function SubmissionsView({ refreshPulse = 0 }) {
       }
     };
     fetchSubmissions();
-  }, [refreshPulse]);
+  }, [refreshPulse, detailDialogOpen, selectedSubmission]);
 
   const filtered = useMemo(() => {
     const list = Array.isArray(submissions) ? submissions : [];

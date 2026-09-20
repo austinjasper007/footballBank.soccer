@@ -25,6 +25,7 @@ export default function ResumeRequestsView({ refreshPulse = 0 }) {
 
   const refresh = async () => setRequests(await getAllResumeRequests());
   useEffect(() => {
+    if(selected) return;
     refresh()
       .catch(() =>
         toast({
@@ -34,7 +35,7 @@ export default function ResumeRequestsView({ refreshPulse = 0 }) {
         }),
       )
       .finally(() => setLoading(false));
-  }, [refreshPulse, toast]);
+  }, [refreshPulse, toast, selected]);
 
   const filtered = useMemo(
     () =>
@@ -248,7 +249,9 @@ export default function ResumeRequestsView({ refreshPulse = 0 }) {
               </div>
               <div>
                 <dt className="text-primary-muted">Phone</dt>
-                <dd className="font-semibold">{selected.requester?.phone || "Not provided"}</dd>
+                <dd className="font-semibold">
+                  {selected.requester?.phone || "Not provided"}
+                </dd>
               </div>
               <div>
                 <dt className="text-primary-muted">Account role</dt>

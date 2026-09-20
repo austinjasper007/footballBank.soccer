@@ -1,16 +1,16 @@
-'use client';
+"use client";
 
-import { useEffect, useMemo, useState } from 'react';
-import { Plus, Edit, Trash2 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { useEffect, useMemo, useState } from "react";
+import { Plus, Edit, Trash2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectTrigger,
   SelectContent,
   SelectItem,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select";
 import {
   Pagination,
   PaginationContent,
@@ -18,36 +18,43 @@ import {
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
-} from '@/components/ui/pagination';
-import { Card, CardContent } from '@/components/ui/card';
-import { SearchBar } from '@/components/admin/SearchBar';
-import { useToast } from '@/hooks/use-toast';
-import { UserDialog } from '@/components/admin/dialogs/UserDialog';
-import { DeleteConfirmationModal } from '@/components/admin/dialogs/DeleteConfirmationModal';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import LoadingSplash from '@/components/ui/loading-splash';
+} from "@/components/ui/pagination";
+import { Card, CardContent } from "@/components/ui/card";
+import { SearchBar } from "@/components/admin/SearchBar";
+import { useToast } from "@/hooks/use-toast";
+import { UserDialog } from "@/components/admin/dialogs/UserDialog";
+import { DeleteConfirmationModal } from "@/components/admin/dialogs/DeleteConfirmationModal";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import LoadingSplash from "@/components/ui/loading-splash";
 import {
   getAllUsers,
   updateUser,
   deleteUser,
   createUser,
-} from '@/actions/adminActions';
+} from "@/actions/adminActions";
 
 const ITEMS_PER_PAGE = 5;
 
 // Utility function to truncate text to 100 characters for mobile
 const truncateText = (text, maxLength = 100) => {
-  if (!text || typeof text !== 'string') return '';
+  if (!text || typeof text !== "string") return "";
   if (text.length <= maxLength) return text;
-  return text.substring(0, maxLength).trim() + '...';
+  return text.substring(0, maxLength).trim() + "...";
 };
 
 export default function UsersView({ refreshPulse = 0 }) {
   const { toast } = useToast();
   const [users, setUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [roleFilter, setRoleFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
   const [userDialogOpen, setUserDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -56,24 +63,25 @@ export default function UsersView({ refreshPulse = 0 }) {
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
+    if (userDialogOpen) return;
     const fetchUsers = async () => {
       try {
         setIsLoading(true);
         const response = await getAllUsers();
         setUsers(response);
       } catch (error) {
-        console.error('Error fetching users:', error);
+        console.error("Error fetching users:", error);
       } finally {
         setIsLoading(false);
       }
     };
     fetchUsers();
-  }, [refreshPulse]);
+  }, [refreshPulse, userDialogOpen]);
 
   const filteredUsers = useMemo(() => {
     return users.filter((user) => {
       const search = searchQuery.toLowerCase();
-      const matchesRole = roleFilter === 'all' || user.role === roleFilter;
+      const matchesRole = roleFilter === "all" || user.role === roleFilter;
       const matchesSearch =
         user.firstName.toLowerCase().includes(search) ||
         user.lastName.toLowerCase().includes(search) ||
@@ -91,7 +99,7 @@ export default function UsersView({ refreshPulse = 0 }) {
 
   const handleDeleteUser = async (id) => {
     // console.log("Delete user clicked - ID:", id, "Type:", typeof id);
-    const user = users.find(u => u.id === id);
+    const user = users.find((u) => u.id === id);
     // console.log("Found user:", user);
     setUserToDelete(user);
     setDeleteDialogOpen(true);
@@ -99,32 +107,32 @@ export default function UsersView({ refreshPulse = 0 }) {
 
   const confirmDeleteUser = async () => {
     if (!userToDelete) return;
-    
+
     // console.log("Confirming delete for user:", userToDelete);
     // console.log("User ID to delete:", userToDelete.id, "Type:", typeof userToDelete.id);
-    
+
     try {
       setIsDeleting(true);
       const result = await deleteUser(userToDelete.id);
-      
+
       if (result && result.success) {
         toast({
-          title: 'User Deleted',
-          description: 'The user has been removed successfully.',
+          title: "User Deleted",
+          description: "The user has been removed successfully.",
         });
         const updated = await getAllUsers();
         setUsers(updated);
         setDeleteDialogOpen(false);
         setUserToDelete(null);
       } else {
-        throw new Error('Delete operation failed');
+        throw new Error("Delete operation failed");
       }
     } catch (error) {
-      console.error('Delete user error:', error);
+      console.error("Delete user error:", error);
       toast({
-        title: 'Error',
-        description: 'Failed to delete user.',
-        variant: 'destructive',
+        title: "Error",
+        description: "Failed to delete user.",
+        variant: "destructive",
       });
     } finally {
       setIsDeleting(false);
@@ -139,9 +147,9 @@ export default function UsersView({ refreshPulse = 0 }) {
   const handleAddOrUpdateUser = async (data) => {
     if (!data.email || !data.firstName || !data.lastName) {
       toast({
-        title: 'Error',
-        description: 'Missing required fields',
-        variant: 'destructive',
+        title: "Error",
+        description: "Missing required fields",
+        variant: "destructive",
       });
       return;
     }
@@ -149,19 +157,19 @@ export default function UsersView({ refreshPulse = 0 }) {
     try {
       if (data.id) {
         await updateUser(data.id, data);
-        toast({ title: 'Success', description: 'User updated successfully' });
+        toast({ title: "Success", description: "User updated successfully" });
       } else {
         await createUser(data);
-        toast({ title: 'Success', description: 'User added successfully' });
+        toast({ title: "Success", description: "User added successfully" });
       }
 
       const updated = await getAllUsers();
       setUsers(updated);
     } catch {
       toast({
-        title: 'Error',
-        description: 'Failed to save user.',
-        variant: 'destructive',
+        title: "Error",
+        description: "Failed to save user.",
+        variant: "destructive",
       });
     }
   };
@@ -200,46 +208,67 @@ export default function UsersView({ refreshPulse = 0 }) {
         </Button>
       </div>
 
-          <Card className="overflow-hidden border border-divider bg-primary-card shadow-sm">
+      <Card className="overflow-x-auto border border-divider bg-primary-card shadow-sm">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <Table><TableHeader><TableRow>
-                  <TableHead>Name</TableHead><TableHead>Email</TableHead><TableHead>Role</TableHead><TableHead>Subscribed</TableHead><TableHead>Actions</TableHead>
-              </TableRow></TableHeader><TableBody>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Subscribed</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {paginatedUsers.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell title={`${user.firstName} ${user.lastName}`}>
-                      <span className="hidden sm:inline">{user.firstName} {user.lastName}</span>
-                      <span className="sm:hidden">{truncateText(`${user.firstName} ${user.lastName}`, 100)}</span>
-                    </TableCell><TableCell title={user.email}>
+                      <span className="hidden sm:inline">
+                        {user.firstName} {user.lastName}
+                      </span>
+                      <span className="sm:hidden">
+                        {truncateText(
+                          `${user.firstName} ${user.lastName}`,
+                          100,
+                        )}
+                      </span>
+                    </TableCell>
+                    <TableCell title={user.email}>
                       <span className="hidden sm:inline">{user.email}</span>
-                      <span className="sm:hidden">{truncateText(user.email, 100)}</span>
-                    </TableCell><TableCell className="capitalize">{user.role}</TableCell><TableCell>
+                      <span className="sm:hidden">
+                        {truncateText(user.email, 100)}
+                      </span>
+                    </TableCell>
+                    <TableCell className="capitalize">{user.role}</TableCell>
+                    <TableCell>
                       <Badge
                         className={
                           user.subscribed
-                            ? 'bg-green-500 hover:bg-green-600'
-                            : 'bg-gray-400'
+                            ? "bg-green-500 hover:bg-green-600"
+                            : "bg-gray-400"
                         }
                       >
-                        {user.subscribed ? 'Yes' : 'No'}
+                        {user.subscribed ? "Yes" : "No"}
                       </Badge>
-                    </TableCell><TableCell>
+                    </TableCell>
+                    <TableCell>
                       {/* Mobile Layout */}
                       <div className="block sm:hidden">
                         <div className="flex gap-2">
-                          <Button 
+                          <Button
                             variant="outline"
-                            size="sm" 
+                            size="sm"
                             onClick={() => handleEditUser(user)}
                             className="flex-1 hover:border-primary-action hover:bg-primary-action/10 hover:text-primary-action"
                           >
                             <Edit className="h-4 w-4 mr-1" />
                             <span className="text-xs">Edit</span>
                           </Button>
-                          <Button 
+                          <Button
                             variant="outline"
-                            size="sm" 
+                            size="sm"
                             onClick={() => handleDeleteUser(user.id)}
                             className="flex-1 hover:border-accent-red hover:bg-accent-red/10 hover:text-accent-red"
                           >
@@ -251,17 +280,28 @@ export default function UsersView({ refreshPulse = 0 }) {
 
                       {/* Desktop Layout */}
                       <div className="hidden sm:flex items-center gap-2">
-                        <Button variant="outline" size="sm" onClick={() => handleEditUser(user)} className="hover:border-primary-action hover:bg-primary-action/10 hover:text-primary-action">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditUser(user)}
+                          className="hover:border-primary-action hover:bg-primary-action/10 hover:text-primary-action"
+                        >
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button variant="outline" size="sm" onClick={() => handleDeleteUser(user.id)} className="hover:border-accent-red hover:bg-accent-red/10 hover:text-accent-red">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDeleteUser(user.id)}
+                          className="hover:border-accent-red hover:bg-accent-red/10 hover:text-accent-red"
+                        >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </TableCell>
                   </TableRow>
                 ))}
-              </TableBody></Table>
+              </TableBody>
+            </Table>
           </div>
         </CardContent>
       </Card>
@@ -289,7 +329,9 @@ export default function UsersView({ refreshPulse = 0 }) {
             <PaginationItem>
               <PaginationNext
                 href="#"
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                onClick={() =>
+                  setCurrentPage((p) => Math.min(totalPages, p + 1))
+                }
               />
             </PaginationItem>
           </PaginationContent>
@@ -312,7 +354,11 @@ export default function UsersView({ refreshPulse = 0 }) {
         onConfirm={confirmDeleteUser}
         title="Delete User"
         description="This will permanently remove the user from the system."
-        itemName={userToDelete ? `${userToDelete.firstName} ${userToDelete.lastName}` : ''}
+        itemName={
+          userToDelete
+            ? `${userToDelete.firstName} ${userToDelete.lastName}`
+            : ""
+        }
         isLoading={isDeleting}
       />
     </div>

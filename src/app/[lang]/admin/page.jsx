@@ -26,14 +26,13 @@ const AdminDashboard = () => {
   const [refreshPulse, setRefreshPulse] = useState(0);
   const pathname = usePathname();
 
-
   useEffect(() => {
     if (!isLoading && pathname) {
       if (!isAuthenticated) {
         router.replace(`/auth/login?redirect=${pathname}`);
         return;
       }
-      
+
       if (role) {
         const isAdminUser = role === "admin";
         if (!isAdminUser) {
@@ -51,24 +50,35 @@ const AdminDashboard = () => {
     }
   }, [isAuthenticated, isLoading, role, pathname, router, toast]);
 
-  useEffect(() => {
-    if (!checkedAuth) return undefined;
+  // useEffect(() => {
+  //   if (!checkedAuth) return undefined;
 
-    const refresh = () => setRefreshPulse((pulse) => pulse + 1);
+  //   const refresh = () => setRefreshPulse((pulse) => pulse + 1);
+  //   const interval = setInterval(() => {
+  //     if (document.visibilityState === "visible") refresh();
+  //   }, 30000);
+
+  //   window.addEventListener("focus", refresh);
+  //   document.addEventListener("visibilitychange", refresh);
+
+  //   return () => {
+  //     clearInterval(interval);
+  //     window.removeEventListener("focus", refresh);
+  //     document.removeEventListener("visibilitychange", refresh);
+  //   };
+  // }, [checkedAuth]);
+
+  useEffect(() => {
+    if (!checkedAuth) return;
+
     const interval = setInterval(() => {
-      if (document.visibilityState === "visible") refresh();
+      if (document.visibilityState === "visible") {
+        setRefreshPulse((pulse) => pulse + 1);
+      }
     }, 30000);
 
-    window.addEventListener("focus", refresh);
-    document.addEventListener("visibilitychange", refresh);
-
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener("focus", refresh);
-      document.removeEventListener("visibilitychange", refresh);
-    };
+    return () => clearInterval(interval);
   }, [checkedAuth]);
-
 
   if (isLoading || !checkedAuth) {
     return <SplashScreen />; // or return null
@@ -112,9 +122,9 @@ const AdminDashboard = () => {
         subtitle: "Manage football players and profiles",
       },
       users: { title: "Users", subtitle: "Manage users and profiles" },
-      subscriptions: { 
-        title: "Subscriptions", 
-        subtitle: "Manage user subscriptions and billing" 
+      subscriptions: {
+        title: "Subscriptions",
+        subtitle: "Manage user subscriptions and billing",
       },
       submissions: {
         title: "Submissions",
@@ -132,7 +142,12 @@ const AdminDashboard = () => {
       },
       settings: { title: "Settings", subtitle: "Configure system preferences" },
     };
-    return titles[activeView] || { title: "Dashboard", subtitle: "Overview of your platform metrics" };
+    return (
+      titles[activeView] || {
+        title: "Dashboard",
+        subtitle: "Overview of your platform metrics",
+      }
+    );
   };
 
   return (

@@ -40,9 +40,9 @@ const ITEMS_PER_PAGE = 5;
 
 // Utility function to truncate text to 100 characters for mobile
 const truncateText = (text, maxLength = 100) => {
-  if (!text || typeof text !== 'string') return '';
+  if (!text || typeof text !== "string") return "";
   if (text.length <= maxLength) return text;
-  return text.substring(0, maxLength).trim() + '...';
+  return text.substring(0, maxLength).trim() + "...";
 };
 
 export default function PlayersView({ refreshPulse = 0 }) {
@@ -60,11 +60,32 @@ export default function PlayersView({ refreshPulse = 0 }) {
   const [playerToDelete, setPlayerToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // useEffect(() => {
+  //   const fetchPlayers = async () => {
+  //     try {
+  //       setIsLoading(true);
+  //       const response = await getAllPlayers();
+  //       setPlayers(response);
+  //     } catch (error) {
+  //       console.error("Error fetching players:", error);
+  //     } finally {
+  //       setIsLoading(false);
+  //     }
+  //   };
+  //   if(!editingPlayer || !playerDialogOpen) {
+  //     fetchPlayers();
+  //   }
+  // }, [refreshPulse]);
+
   useEffect(() => {
+    if (playerDialogOpen) return;
+
     const fetchPlayers = async () => {
       try {
         setIsLoading(true);
+
         const response = await getAllPlayers();
+
         setPlayers(response);
       } catch (error) {
         console.error("Error fetching players:", error);
@@ -72,8 +93,12 @@ export default function PlayersView({ refreshPulse = 0 }) {
         setIsLoading(false);
       }
     };
+
+    // Never refresh the list while the player form is open
+  
     fetchPlayers();
-  }, [refreshPulse]);
+    
+  }, [refreshPulse, playerDialogOpen]);
 
   const filteredPlayers = useMemo(() => {
     return players.filter((player) => {
@@ -102,14 +127,14 @@ export default function PlayersView({ refreshPulse = 0 }) {
   const totalPages = Math.ceil(filteredPlayers.length / ITEMS_PER_PAGE);
 
   const handleDeletePlayer = async (id) => {
-    const player = players.find(p => p.id === id);
+    const player = players.find((p) => p.id === id);
     setPlayerToDelete(player);
     setDeleteDialogOpen(true);
   };
 
   const confirmDeletePlayer = async () => {
     if (!playerToDelete) return;
-    
+
     try {
       setIsDeleting(true);
       await deletePlayer(playerToDelete.id);
@@ -202,10 +227,7 @@ export default function PlayersView({ refreshPulse = 0 }) {
           </Select>
         </div>
 
-        <Button
-          onClick={() => setPlayerDialogOpen(true)}
-          variant="action"
-        >
+        <Button onClick={() => setPlayerDialogOpen(true)} variant="action">
           <Plus className="h-4 w-4 mr-2" />
           Add Player
         </Button>
@@ -217,113 +239,139 @@ export default function PlayersView({ refreshPulse = 0 }) {
             <table className="w-full">
               <thead className="bg-secondary-bg-alt">
                 <tr>
-                  <th className="p-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-primary-muted">Player</th>
-                  <th className="p-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-primary-muted">Position</th>
-                  <th className="p-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-primary-muted">Email</th>
-                  <th className="p-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-primary-muted">Country</th>
-                  <th className="p-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-primary-muted">Status</th>
-                  <th className="p-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-primary-muted">Actions</th>
+                  <th className="p-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-primary-muted">
+                    Player
+                  </th>
+                  <th className="p-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-primary-muted">
+                    Position
+                  </th>
+                  <th className="p-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-primary-muted">
+                    Email
+                  </th>
+                  <th className="p-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-primary-muted">
+                    Country
+                  </th>
+                  <th className="p-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-primary-muted">
+                    Status
+                  </th>
+                  <th className="p-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-primary-muted">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {paginatedPlayers.map((player) => {
                   const fullName = `${player.firstName} ${player.lastName}`;
-                  return <tr
-                    key={player.id}
-                    className="border-t border-divider/70 transition-colors hover:bg-primary-action/5"
-                  >
-                    <td className="p-4">
-                      <div className="flex items-center gap-3">
-                        <Image
-                          src={player.headshotUrl || player.imageUrl?.[0] || "/logo/logo3.svg"}
-                          alt={`${player.firstName} ${player.lastName}`}
-                          width={40}
-                          height={40}
-                          className="w-10 h-10 rounded-full object-cover"
-                        />
-                        <div>
-                          <p className="font-medium" title={`${player.firstName} ${player.lastName}`}>
-                            <span className="hidden sm:inline">
-                              {player.firstName} {player.lastName}
-                            </span>
-                            <span className="sm:hidden">
-                              {truncateText(`${player.firstName} ${player.lastName}`, 100)}
-                            </span>
-                          </p>
-                          <p className="text-sm text-primary-muted">
-                            Age {calculateAge(player.dob)}
-                          </p>
+                  return (
+                    <tr
+                      key={player.id}
+                      className="border-t border-divider/70 transition-colors hover:bg-primary-action/5"
+                    >
+                      <td className="p-4">
+                        <div className="flex items-center gap-3">
+                          <Image
+                            src={
+                              player.headshotUrl ||
+                              player.imageUrl?.[0] ||
+                              "/logo/logo3.svg"
+                            }
+                            alt={`${player.firstName} ${player.lastName}`}
+                            width={40}
+                            height={40}
+                            className="w-10 h-10 rounded-full object-cover"
+                          />
+                          <div>
+                            <p
+                              className="font-medium"
+                              title={`${player.firstName} ${player.lastName}`}
+                            >
+                              <span className="hidden sm:inline">
+                                {player.firstName} {player.lastName}
+                              </span>
+                              <span className="sm:hidden">
+                                {truncateText(
+                                  `${player.firstName} ${player.lastName}`,
+                                  100,
+                                )}
+                              </span>
+                            </p>
+                            <p className="text-sm text-primary-muted">
+                              Age {calculateAge(player.dob)}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="p-4">{player.position}</td>
-                    <td className="p-4" title={player.email}>
-                      <span className="hidden sm:inline">{player.email}</span>
-                      <span className="sm:hidden">{truncateText(player.email, 100)}</span>
-                    </td>
-                    <td className="p-4">{player.country}</td>
-                    <td className="p-4">
-                      <Badge
-                        variant={player.featured ? "default" : "secondary"}
-                        className={
-                          player.featured
-                            ? "bg-green-500 hover:bg-green-600"
-                            : ""
-                        }
-                      >
-                        {player.featured ? "Featured" : "Normal"}
-                      </Badge>
-                    </td>
-                    <td className="p-4">
-                      {/* Mobile Layout */}
-                      <div className="block sm:hidden">
-                        <div className="flex gap-2">
+                      </td>
+                      <td className="p-4">{player.position}</td>
+                      <td className="p-4" title={player.email}>
+                        <span className="hidden sm:inline">{player.email}</span>
+                        <span className="sm:hidden">
+                          {truncateText(player.email, 100)}
+                        </span>
+                      </td>
+                      <td className="p-4">{player.country}</td>
+                      <td className="p-4">
+                        <Badge
+                          variant={player.featured ? "default" : "secondary"}
+                          className={
+                            player.featured
+                              ? "bg-green-500 hover:bg-green-600"
+                              : ""
+                          }
+                        >
+                          {player.featured ? "Featured" : "Normal"}
+                        </Badge>
+                      </td>
+                      <td className="p-4">
+                        {/* Mobile Layout */}
+                        <div className="block sm:hidden">
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEditPlayer(player)}
+                              title={`Edit ${fullName}`}
+                              className="flex-1 hover:border-primary-action hover:bg-primary-action/10 hover:text-primary-action"
+                            >
+                              <Edit className="h-4 w-4 mr-1" />
+                              <span className="text-xs">Edit</span>
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDeletePlayer(player.id)}
+                              title={`Delete ${fullName}`}
+                              className="flex-1 hover:border-accent-red hover:bg-accent-red/10 hover:text-accent-red"
+                            >
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              <span className="text-xs">Delete</span>
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Desktop Layout */}
+                        <div className="hidden sm:flex items-center gap-2">
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => handleEditPlayer(player)}
                             title={`Edit ${fullName}`}
-                            className="flex-1 hover:border-primary-action hover:bg-primary-action/10 hover:text-primary-action"
+                            className="hover:border-primary-action hover:bg-primary-action/10 hover:text-primary-action"
                           >
-                            <Edit className="h-4 w-4 mr-1" />
-                            <span className="text-xs">Edit</span>
+                            <Edit className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => handleDeletePlayer(player.id)}
                             title={`Delete ${fullName}`}
-                            className="flex-1 hover:border-accent-red hover:bg-accent-red/10 hover:text-accent-red"
+                            className="hover:border-accent-red hover:bg-accent-red/10 hover:text-accent-red"
                           >
-                            <Trash2 className="h-4 w-4 mr-1" />
-                            <span className="text-xs">Delete</span>
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
-                      </div>
-
-                      {/* Desktop Layout */}
-                      <div className="hidden sm:flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEditPlayer(player)}
-                          title={`Edit ${fullName}`}
-                          className="hover:border-primary-action hover:bg-primary-action/10 hover:text-primary-action"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDeletePlayer(player.id)}
-                          title={`Delete ${fullName}`}
-                          className="hover:border-accent-red hover:bg-accent-red/10 hover:text-accent-red"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>;
+                      </td>
+                    </tr>
+                  );
                 })}
               </tbody>
             </table>
@@ -379,7 +427,11 @@ export default function PlayersView({ refreshPulse = 0 }) {
         onConfirm={confirmDeletePlayer}
         title="Delete Player"
         description="This will permanently remove the player from the system."
-        itemName={playerToDelete ? `${playerToDelete.firstName} ${playerToDelete.lastName}` : ''}
+        itemName={
+          playerToDelete
+            ? `${playerToDelete.firstName} ${playerToDelete.lastName}`
+            : ""
+        }
         isLoading={isDeleting}
       />
     </div>

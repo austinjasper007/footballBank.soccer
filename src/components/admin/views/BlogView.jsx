@@ -388,7 +388,7 @@ export default function BlogView() {
                             className="flex-1 text-primary-action hover:text-primary-action-hover"
                           >
                             <Eye className="h-4 w-4 mr-1" />
-                            <span className="text-xs">View</span>
+                            <span className="text-xs hidden lg:block">View</span>
                           </Button>
                           <Button
                             variant="ghost"
@@ -397,7 +397,7 @@ export default function BlogView() {
                             className="flex-1"
                           >
                             <Edit className="h-4 w-4 mr-1" />
-                            <span className="text-xs">Edit</span>
+                            <span className="text-xs hidden lg:block">Edit</span>
                           </Button>
                           <Button
                             variant="ghost"
@@ -406,7 +406,7 @@ export default function BlogView() {
                             className="flex-1"
                           >
                             <Trash2 className="h-4 w-4 mr-1" />
-                            <span className="text-xs">Delete</span>
+                            <span className="text-xs hidden lg:block">Delete</span>
                           </Button>
                         </div>
                       </div>

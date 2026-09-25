@@ -308,11 +308,13 @@ export function PlayerDialog({ open, onOpenChange, player, onSave }) {
           </div>
           <InputField
             label="Height (cm)"
+            type="number"
             value={formData.height}
             onChange={(val) => setFormData({ ...formData, height: val })}
           />
           <InputField
             label="Weight (kg)"
+            type="number"
             value={formData.weight}
             onChange={(val) => setFormData({ ...formData, weight: val })}
           />

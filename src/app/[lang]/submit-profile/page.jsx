@@ -400,11 +400,13 @@ export default function PlayerSubmissionForm() {
             </div>
             <InputField
               label={t?.heightCm || "Height (cm)"}
+              type="number"
               value={formData.height}
               onChange={(val) => setFormData({ ...formData, height: val })}
             />
             <InputField
               label={t?.weightKg || "Weight (kg)"}
+              type="number"
               value={formData.weight}
               onChange={(val) => setFormData({ ...formData, weight: val })}
             />

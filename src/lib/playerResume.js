@@ -13,7 +13,7 @@ const COLORS = {
 
 const PAGE = { width: 595.28, height: 841.89, left: 48, right: 48, top: 48, bottom: 54 };
 const CONTENT_WIDTH = PAGE.width - PAGE.left - PAGE.right;
-const PLATFORM_PHONE = "+(844) 362-9881 (Toll Free)";
+const PLATFORM_PHONE = "+1 (862) 340-2213";
 const valueOrUnavailable = (value) => value || "Not provided";
 const fullName = (player) => `${player.firstName || ""} ${player.lastName || ""}`.trim();
 

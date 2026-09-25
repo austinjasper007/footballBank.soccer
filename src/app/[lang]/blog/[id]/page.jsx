@@ -127,7 +127,7 @@ export default async function BlogArticlePage({ params }) {
           {/* Content */}
           <div className="relative z-10">
             <div className="container mx-auto px-4 flex items-center justify-center">
-              <h1 className="text-4xl font-bold text-white">{post.title}</h1>
+              <h1 className="text-3xl font-bold text-white">{post.title}</h1>
             </div>
           </div>
         </section>
@@ -166,7 +166,7 @@ export default async function BlogArticlePage({ params }) {
                     {formatFullDate(post.createdAt)}
                   </span>
                 </div>
-                <h1 className="text-3xl md:text-4xl font-bold mb-4 text-primary-text leading-tight">
+                <h1 className="text-2xl md:text-3xl font-bold mb-4 text-primary-text leading-tight">
                   {post.title}
                 </h1>
               </header>

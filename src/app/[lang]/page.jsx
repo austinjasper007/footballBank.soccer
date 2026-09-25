@@ -9,13 +9,9 @@ import { getDictionary } from "@/lib/dictionaries";
 import { formatTimeAgo } from "@/utils/dateHelper";
 import {
   ArrowUpRight,
-  Globe2,
   Globe2Icon,
   Play,
   Search,
-  ShieldCheck,
-  Star,
-  Target,
   TrendingUp,
   UserRound,
 } from "lucide-react";
@@ -120,18 +116,19 @@ export default async function HomePage({ params }) {
         <div className="absolute inset-0 bg-linear-to-r from-primary-navy via-primary-navy/85 to-primary-navy/20" />
 
         <div className="relative mx-auto flex max-w-8xl flex-col items-stretch gap-4 px-4 py-4 md:flex-row">
-          
-          <section 
-            className="flex min-w-0 flex-col justify-center px-1 py-6 sm:px-2 w-full md:w-[48%] md:pl-16 md:py-12 lg:w-[46%]" >
+          <section className="flex min-w-0 flex-col justify-center px-1 py-6 sm:px-2 w-full md:w-[48%] md:pl-16 md:py-12 lg:w-[46%]">
             <p className="eyebrow">
-              {home?.heroEyebrow || "Representation · Recruitment · Opportunity"}
+              {home?.heroEyebrow ||
+                "Representation · Recruitment · Opportunity"}
             </p>
             <h1 className="mt-5 max-w-xl font-heading text-3xl leading-[1.2] text-primary-text-inverse uppercase sm:mt-6 sm:text-4xl lg:text-6xl lg:leading-[1.2]">
               {home?.heroTitleLine1 || "Connecting football"}
               <br />
               {home?.heroTitleLine2 || "talent, clubs &"}
               <br />
-              <span className="text-primary-accent">{home?.heroTitleLine3 || "global opportunity."}</span>
+              <span className="text-primary-accent">
+                {home?.heroTitleLine3 || "global opportunity."}
+              </span>
             </h1>
             <p className="mt-5 max-w-lg text-sm md:text-base leading-6 text-primary-text-inverse/70 sm:mt-7 sm:leading-relaxed">
               {home?.heroSubtitle ||
@@ -155,7 +152,8 @@ export default async function HomePage({ params }) {
                 className="w-full px-5 sm:w-auto sm:px-8"
               >
                 <Link href={`/${lang}/clubs-scouts`}>
-                  {home?.workWithFootballBank || "Work with FootballBank"} <ArrowUpRight />
+                  {home?.workWithFootballBank || "Work with FootballBank"}{" "}
+                  <ArrowUpRight />
                 </Link>
               </Button>
             </div>
@@ -163,7 +161,8 @@ export default async function HomePage({ params }) {
               href={`/${lang}/contact`}
               className="mt-6 inline-flex items-center gap-2 text-xs leading-5 text-primary-text-inverse/60 transition-colors hover:text-primary-accent sm:mt-8"
             >
-              {home?.seekingRepresentation || "Seeking representation?"} <ArrowUpRight className="h-3.5 w-3.5" />
+              {home?.seekingRepresentation || "Seeking representation?"}{" "}
+              <ArrowUpRight className="h-3.5 w-3.5" />
             </a>
           </section>
 
@@ -179,7 +178,6 @@ export default async function HomePage({ params }) {
               />
               {/* <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent"></div> */}
             </div>
-            
           </section>
         </div>
 
@@ -204,7 +202,8 @@ export default async function HomePage({ params }) {
             </span>
 
             <span className="text-[9px] font-medium tracking-[0.12em] text-white/60 uppercase">
-              {home?.assuranceStrip?.playerRepresentation || "Player representation"}
+              {home?.assuranceStrip?.playerRepresentation ||
+                "Player representation"}
             </span>
           </div>
 
@@ -224,7 +223,8 @@ export default async function HomePage({ params }) {
             </span>
 
             <span className="text-[9px] font-medium tracking-[0.12em] text-white/60 uppercase">
-              {home?.assuranceStrip?.internationalOpportunities || "International opportunities"}
+              {home?.assuranceStrip?.internationalOpportunities ||
+                "International opportunities"}
             </span>
           </div>
 
@@ -243,7 +243,9 @@ export default async function HomePage({ params }) {
       <div className="w-full">
         {/* FEATURED PLAYERS */}
         <section className="mx-auto max-w-7xl px-6 py-14">
-          <p className="eyebrow">{home?.featuredSection?.eyebrow || "The player collection"}</p>
+          <p className="eyebrow">
+            {home?.featuredSection?.eyebrow || "The player collection"}
+          </p>
           <div className="mt-5 flex flex-wrap items-end justify-between gap-4">
             <div>
               <h2 className="font-heading text-[1.6rem] md:text-4xl uppercase">
@@ -259,7 +261,8 @@ export default async function HomePage({ params }) {
               href={`/${lang}/players`}
               className="inline-flex items-center gap-2 text-sm font-medium text-primary-action hover:underline"
             >
-              {home?.featuredSection?.exploreAll || "Explore all players"} <ArrowUpRight className="h-4 w-4" />
+              {home?.featuredSection?.exploreAll || "Explore all players"}{" "}
+              <ArrowUpRight className="h-4 w-4" />
             </Link>
           </div>
 
@@ -271,7 +274,11 @@ export default async function HomePage({ params }) {
               >
                 <div className="relative">
                   <Image
-                    src={player.headshotUrl || player.imageUrl?.[0] || "/logo/logo3.svg"}
+                    src={
+                      player.headshotUrl ||
+                      player.imageUrl?.[0] ||
+                      "/logo/logo3.svg"
+                    }
                     alt={player.firstName}
                     width={800}
                     height={900}
@@ -288,10 +295,8 @@ export default async function HomePage({ params }) {
 
                 <div className="p-4">
                   <div className="flex items-center justify-between text-[0.7rem] text-primary-muted">
-                    <p className=" uppercase">
-                    {player.country}
-                  </p>
-                  <span>
+                    <p className=" uppercase">{player.country}</p>
+                    <span>
                       {home?.playerCard?.age || "Age"}:{" "}
                       {player.dob
                         ? new Date().getFullYear() -
@@ -299,11 +304,10 @@ export default async function HomePage({ params }) {
                         : "N/A"}
                     </span>
                   </div>
-                  
+
                   <h3 className="mt-2 font-heading text-sm md:text-xl">
                     {player.firstName} {player.lastName}
                   </h3>
-
 
                   <div className="mt-4 grid grid-cols-3 gap-2 border-t border-divider pt-4 text-[0.7rem] text-primary-muted">
                     {/* <span>
@@ -316,7 +320,8 @@ export default async function HomePage({ params }) {
                     {/* {player.foot && <span>{home?.playerCard?.foot || "Foot"}: {player.foot}</span>} */}
                   </div>
                   <p className="mt-2 text-[0.7rem] text-primary-muted">
-                    {home?.playerCard?.clubAvailability || "Club & availability on confirmation"}
+                    {home?.playerCard?.clubAvailability ||
+                      "Club & availability on confirmation"}
                   </p>
                   <div className="mt-4 flex items-center justify-between border-t border-divider pt-3">
                     <Link
@@ -326,8 +331,12 @@ export default async function HomePage({ params }) {
                       {dict.homepage.featuredPlayers.viewProfile}{" "}
                       <ArrowUpRight className="h-3.5 w-3.5" />
                     </Link>
-                    <Link href={`/${lang}/players/${player.id}#highlights`} className="inline-flex items-center gap-1.5 text-sm text-primary-text">
-                      <Play className="h-3.5 w-3.5" /> {home?.playerCard?.watchHighlights || "Watch highlights"}
+                    <Link
+                      href={`/${lang}/players/${player.id}#highlights`}
+                      className="inline-flex items-center gap-1.5 text-sm text-primary-text"
+                    >
+                      <Play className="h-3.5 w-3.5" />{" "}
+                      {home?.playerCard?.watchHighlights || "Watch highlights"}
                     </Link>
                   </div>
                 </div>
@@ -345,9 +354,12 @@ export default async function HomePage({ params }) {
         <section className="bg-secondary-bg-alt">
           <div className="mx-auto grid max-w-7xl gap-14 px-6 py-14 lg:grid-cols-2">
             <div>
-              <p className="eyebrow">{home?.recruitmentBrief?.eyebrow || "For clubs & partners"}</p>
+              <p className="eyebrow">
+                {home?.recruitmentBrief?.eyebrow || "For clubs & partners"}
+              </p>
               <h2 className="mt-5 font-heading text-[1.6rem] md:text-4xl leading-tight uppercase">
-                {home?.recruitmentBrief?.titleLine1 || "Your recruitment brief."}
+                {home?.recruitmentBrief?.titleLine1 ||
+                  "Your recruitment brief."}
                 <br />
                 {home?.recruitmentBrief?.titleLine2 || "Our starting point."}
               </h2>
@@ -471,14 +483,18 @@ export default async function HomePage({ params }) {
 
         {/* Direction */}
         <section className="mx-auto max-w-7xl px-6 py-12">
-          <p className="eyebrow">{home?.direction?.eyebrow || "Beyond the highlight reel"}</p>
+          <p className="eyebrow">
+            {home?.direction?.eyebrow || "Beyond the highlight reel"}
+          </p>
           <h2 className="mt-5 font-heading text-[1.6rem] md:text-4xl uppercase">
             {home?.direction?.title || "A career deserves a clear direction."}
           </h2>
           <div className="mt-8 grid gap-10 md:grid-cols-2 lg:grid-cols-4">
             {directionItems.map((d, index) => (
               <div key={d.title || index} className="rule-divider pt-5">
-                <span className="text-[0.7rem] text-primary-muted">{DIRECTION[index]?.n || `0${index + 1}`}</span>
+                <span className="text-[0.7rem] text-primary-muted">
+                  {DIRECTION[index]?.n || `0${index + 1}`}
+                </span>
                 <h3 className="mt-6 text-base font-medium">{d.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-primary-muted">
                   {d.copy}
@@ -513,7 +529,9 @@ export default async function HomePage({ params }) {
               className="h-112 w-full rounded-lg object-left object-cover md:object-center"
             /> */}
             <div>
-              <p className="eyebrow">{home?.founder?.eyebrow || "The people behind the pathway"}</p>
+              <p className="eyebrow">
+                {home?.founder?.eyebrow || "The people behind the pathway"}
+              </p>
               <h2 className="mt-5 font-heading text-[1.6rem] md:text-4xl leading-tight text-primary-text-inverse uppercase">
                 {home?.founder?.titleLine1 || "Licensed representation."}
                 <br />
@@ -531,9 +549,15 @@ export default async function HomePage({ params }) {
               <p className="text-xs text-primary-text-inverse/60">
                 {home?.founder?.credential || "FIFA Licensed Football Agent"}
               </p>
-              <Button variant="onNavy" size="lg" className="mt-7 px-5 sm:w-auto sm:px-8">
+              <Button
+                variant="onNavy"
+                size="lg"
+                className="mt-7 px-5 sm:w-auto sm:px-8"
+              >
                 <Link href={`/${lang}/agent`} className="flex gap-2">
-                  {home?.founder?.meetRepresentative || "Meet our representative"} <ArrowUpRight />
+                  {home?.founder?.meetRepresentative ||
+                    "Meet our representative"}{" "}
+                  <ArrowUpRight />
                 </Link>
               </Button>
             </div>
@@ -544,7 +568,9 @@ export default async function HomePage({ params }) {
         <section className="bg-secondary-bg">
           <div className="mx-auto grid max-w-7xl gap-10 px-6 py-14 lg:grid-cols-2 lg:items-center">
             <div>
-              <p className="eyebrow">{home?.ctaSection?.eyebrow || "The next conversation matters"}</p>
+              <p className="eyebrow">
+                {home?.ctaSection?.eyebrow || "The next conversation matters"}
+              </p>
               <h2 className="mt-5 font-heading text-[1.6rem] md:text-4xl leading-tight text-primary-text-inverse uppercase">
                 {home?.ctaSection?.titleLine1 || "The right talent."}
                 <br />
@@ -557,20 +583,28 @@ export default async function HomePage({ params }) {
                   "Whether you're recruiting for a club, exploring a football partnership or planning the next stage of your career, start the conversation with FootballBank."}
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
-                <Button
-                  variant="action"
-                  size="lg"
-                  className="w-full px-5 sm:w-auto sm:px-8"
-                >
-                  {home?.ctaSection?.workWithUs || "Work with us"} <ArrowUpRight />
-                </Button>
-                <Button
-                  variant="onNavy"
-                  size="lg"
-                  className="w-full px-5 sm:w-auto sm:px-8"
-                >
-                  {home?.ctaSection?.seekRepresentation || "Seek representation"} <ArrowUpRight />
-                </Button>
+                <Link href={`/${lang}/contact`}>
+                  <Button
+                    variant="action"
+                    size="lg"
+                    className="w-full px-5 sm:w-auto sm:px-8"
+                  >
+                    {home?.ctaSection?.workWithUs || "Work with us"}{" "}
+                    <ArrowUpRight />
+                  </Button>
+                </Link>
+
+                <Link href={`/${lang}/agent`}>
+                  <Button
+                    variant="onNavy"
+                    size="lg"
+                    className="w-full px-5 sm:w-auto sm:px-8"
+                  >
+                    {home?.ctaSection?.seekRepresentation ||
+                      "Seek representation"}{" "}
+                    <ArrowUpRight />
+                  </Button>
+                </Link>
               </div>
             </div>
           </div>

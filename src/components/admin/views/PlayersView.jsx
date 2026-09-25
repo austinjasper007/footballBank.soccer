@@ -29,6 +29,7 @@ import {
 
 import {
   getAllPlayers,
+  createPlayer,
   updatePlayer,
   deletePlayer,
 } from "@/actions/adminActions";
@@ -163,16 +164,9 @@ export default function PlayersView({ refreshPulse = 0 }) {
   };
 
   const handleAddOrUpdatePlayer = async (data) => {
-    if (!data.id) {
-      toast({
-        title: "Error",
-        description: "New player creation is not implemented yet.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    await updatePlayer(data.id, data);
+    const savedPlayer = data.id
+      ? await updatePlayer(data.id, data)
+      : await createPlayer(data);
     const updated = await getAllPlayers();
     setPlayers(updated);
 
@@ -181,7 +175,7 @@ export default function PlayersView({ refreshPulse = 0 }) {
 
     toast({
       title: "Success",
-      description: "Player updated successfully.",
+      description: savedPlayer?.id ? "Player saved successfully." : "Player saved, but the response was incomplete.",
     });
   };
 

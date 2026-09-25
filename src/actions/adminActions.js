@@ -179,16 +179,31 @@ export async function getAllPlayers() {
 export async function createPlayer(data) {
   await dbConnect();
   try {
-    const existingPlayer = await Player.findOne({ email: data.email });
-    if (existingPlayer) throw new Error("Player with this email already exists");
+    const normalizedEmail = data.email?.trim().toLowerCase();
+    if (!normalizedEmail) throw new Error("Email is required");
 
-    const normalizedEmail = data.email.trim().toLowerCase();
+    const [existingPlayer, pendingSubmission] = await Promise.all([
+      Player.findOne({ email: normalizedEmail }).select("_id").lean(),
+      Submission.findOne({
+        email: normalizedEmail,
+        $or: [{ status: "PENDING" }, { status: { $exists: false } }],
+      }).select("_id").lean(),
+    ]);
+    if (existingPlayer) throw new Error("Player with this email already exists");
+    if (pendingSubmission) throw new Error("A player submission with this email is currently under review");
+
     let user = await User.findOne({ email: normalizedEmail });
     if (!user) {
       user = await User.create({
         email: normalizedEmail,
         firstName: data.firstName,
         lastName: data.lastName,
+        phone: data.phone,
+        phoneCountryCode: data.phoneCountryCode,
+        address: {
+          country: data.country,
+          countryCode: data.countryCode,
+        },
         role: "player",
         isVerified: false,
         subscribed: false,
@@ -201,6 +216,13 @@ export async function createPlayer(data) {
     } else {
       user.firstName = data.firstName;
       user.lastName = data.lastName;
+      user.phone = data.phone || user.phone;
+      user.phoneCountryCode = data.phoneCountryCode || user.phoneCountryCode;
+      user.address = {
+        ...(user.address || {}),
+        country: data.country || user.address?.country,
+        countryCode: data.countryCode || user.address?.countryCode,
+      };
       user.role = "player";
       user.updatedAt = new Date();
       await user.save();
@@ -210,7 +232,7 @@ export async function createPlayer(data) {
     return toPlain(player);
   } catch (err) {
     console.error("Error creating player:", err);
-    return err;
+    throw err;
   }
 }
 

@@ -24,6 +24,7 @@ import { footballLeagues } from "@/data/footballLeagues";
 import Link from "next/link";
 import { getCountryCallingCode } from "libphonenumber-js";
 import { PhoneField } from "@/components/ui/PhoneField";
+import { MultiSelect } from "@/components/ui/MultiSelect";
 import { getClientDictionary } from "@/lib/client-dictionaries";
 
 export default function PlayerSubmissionForm() {
@@ -64,7 +65,7 @@ export default function PlayerSubmissionForm() {
     description: "",
     contractStatus: "",
     availableFrom: "",
-    preferredLeagues: "",
+    preferredLeagues: [],
     stats: {
       career: { Appearances: "", Goals: "", Assists: "", Trophies: "" },
       season: { Appearances: "", Goals: "", Assists: "", Minutes: "" },
@@ -431,26 +432,15 @@ export default function PlayerSubmissionForm() {
               }
               disabled={formData.contractStatus !== "Unavailable"}
             />
-            <div>
-              <Label>{t?.preferredLeagues || "Preferred Leagues"}</Label>
-              <Select
-                value={formData.preferredLeagues}
-                onValueChange={(val) =>
-                  setFormData({ ...formData, preferredLeagues: val })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={t?.selectPreferredLeague || "Select preferred league"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {footballLeagues.map((league) => (
-                    <SelectItem key={league.value} value={league.value}>
-                      {league.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <MultiSelect
+              label={t?.preferredLeagues || "Preferred Leagues"}
+              placeholder={t?.selectPreferredLeague || "Select preferred leagues"}
+              options={footballLeagues}
+              value={formData.preferredLeagues}
+              onChange={(preferredLeagues) =>
+                setFormData({ ...formData, preferredLeagues })
+              }
+            />
             <div className="md:col-span-2">
               <Label>{t?.bio || "Bio"}</Label>
               <Textarea
@@ -576,6 +566,7 @@ export default function PlayerSubmissionForm() {
                   )
               )}
             </div>
+
           </div>
 
           <div className="flex justify-between mt-6">

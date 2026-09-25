@@ -26,6 +26,16 @@ import {
 } from "@/components/FeatureToggle";
 import { createPlayer, updatePlayer } from "@/actions/adminActions";
 import { countries } from "@/data/countries&code";
+import { footballLeagues } from "@/data/footballLeagues";
+import { MultiSelect } from "@/components/ui/MultiSelect";
+import { PhoneField } from "@/components/ui/PhoneField";
+const normalizeLeagues = (value) => {
+  if (Array.isArray(value)) return value;
+  if (typeof value === "string") {
+    return value.split(",").map((league) => league.trim()).filter(Boolean);
+  }
+  return [];
+};
 
 /**
  * PlayerDialog component for adding or editing a football player.
@@ -48,6 +58,7 @@ export function PlayerDialog({ open, onOpenChange, player, onSave }) {
     foot: player?.foot || "",
     email: player?.email || "",
     phone: player?.phone || "",
+    phoneCountryCode: player?.phoneCountryCode || "US",
     cvUrl: player?.cvUrl || "",
     headshotUrl: player?.headshotUrl || "",
     // Legacy multi-photo gallery state retained for existing player records.
@@ -59,8 +70,7 @@ export function PlayerDialog({ open, onOpenChange, player, onSave }) {
     playerOfTheWeek: player?.playerOfTheWeek || false,
     contractStatus: player?.contractStatus || "",
     availableFrom: player?.availableFrom || "",
-    preferredLeagues: player?.preferredLeagues || "",
-    salaryExpectation: player?.salaryExpectation || "",
+    preferredLeagues: normalizeLeagues(player?.preferredLeagues),
     stats: player?.stats || {
       career: { Appearances: "", Goals: "", Assists: "", Trophies: "" },
       season: { Appearances: "", Goals: "", Assists: "", Minutes: "" },
@@ -90,6 +100,7 @@ export function PlayerDialog({ open, onOpenChange, player, onSave }) {
     foot: player?.foot || "",
     email: player?.email || "",
     phone: player?.phone || "",
+    phoneCountryCode: player?.phoneCountryCode || "US",
     cvUrl: player?.cvUrl || "",
     headshotUrl: player?.headshotUrl || "",
     // Legacy multi-photo gallery state retained for existing player records.
@@ -101,8 +112,7 @@ export function PlayerDialog({ open, onOpenChange, player, onSave }) {
     playerOfTheWeek: player?.playerOfTheWeek || false,
     contractStatus: player?.contractStatus || "",
     availableFrom: player?.availableFrom || "",
-    preferredLeagues: player?.preferredLeagues || "",
-    salaryExpectation: player?.salaryExpectation || "",
+    preferredLeagues: normalizeLeagues(player?.preferredLeagues),
     stats: player?.stats || {
       career: { Appearances: "", Goals: "", Assists: "", Trophies: "" },
       season: { Appearances: "", Goals: "", Assists: "", Minutes: "" },
@@ -123,12 +133,12 @@ export function PlayerDialog({ open, onOpenChange, player, onSave }) {
     if (
       !formData.firstName ||
       !formData.lastName ||
-      !formData.position
+      !formData.position ||
+      !formData.email
     ) {
       toast({
         title: "Error",
-        description:
-          "Please fill in all required fields including primary video",
+        description: "Please fill in all required fields including email",
         variant: "destructive",
       });
       return;
@@ -144,7 +154,7 @@ export function PlayerDialog({ open, onOpenChange, player, onSave }) {
     } catch (err) {
       toast({
         title: "Error",
-        description: "Failed to save player",
+        description: err?.message || "Failed to save player",
         variant: "destructive",
       });
     }
@@ -217,15 +227,8 @@ export function PlayerDialog({ open, onOpenChange, player, onSave }) {
       });
   };
 
-  const handleCvUpload = (file) => {
-    const path = `players/${formData.email || Date.now()}/cv/${file.name}`;
-    uploadFileWithProgress(path, file, (p) =>
-      setUploadProgress((prev) => ({ ...prev, cv: p }))
-    ).then((url) => setFormData((prev) => ({ ...prev, cvUrl: url })));
-  };
-
   return (
-    <Dialog open={open} onOpenChange={() => {}}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{player ? "Edit Player" : "Add Player"}</DialogTitle>
@@ -335,43 +338,38 @@ export function PlayerDialog({ open, onOpenChange, player, onSave }) {
             value={formData.email}
             onChange={(val) => setFormData({ ...formData, email: val })}
           />
-          <InputField
-            label="Phone"
-            value={formData.phone}
-            onChange={(val) => setFormData({ ...formData, phone: val })}
+          <PhoneField
+            countryCode={formData.phoneCountryCode}
+            phone={formData.phone}
+            onCountryCodeChange={(value) => setFormData({ ...formData, phoneCountryCode: value })}
+            onPhoneChange={(value) => setFormData({ ...formData, phone: value })}
           />
-          <InputField
-            label="Contract Status"
-            value={formData.contractStatus}
-            onChange={(val) =>
-              setFormData({ ...formData, contractStatus: val })
-            }
-          />
+          <div>
+            <Label>Contract Status</Label>
+            <Select
+              value={formData.contractStatus}
+              onValueChange={(value) => setFormData({ ...formData, contractStatus: value, availableFrom: value === "Unavailable" ? formData.availableFrom : "" })}
+            >
+              <SelectTrigger><SelectValue placeholder="Select contract status" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Available">Available</SelectItem>
+                <SelectItem value="Unavailable">Unavailable</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <InputField
             label="Available From"
-            type="date"
+            type="month"
             value={formData.availableFrom}
             onChange={(val) => setFormData({ ...formData, availableFrom: val })}
+            disabled={formData.contractStatus !== "Unavailable"}
           />
-          <InputField
+          <MultiSelect
             label="Preferred Leagues"
-            value={Array.isArray(formData.preferredLeagues) ? formData.preferredLeagues.join(", ") : formData.preferredLeagues}
-            onChange={(val) =>
-              setFormData({
-                ...formData,
-                preferredLeagues: val
-                  .split(",")
-                  .map((league) => league.trim())
-                  .filter(Boolean),
-              })
-            }
-          />
-          <InputField
-            label="Salary Expectation"
-            value={formData.salaryExpectation}
-            onChange={(val) =>
-              setFormData({ ...formData, salaryExpectation: val })
-            }
+            placeholder="Select preferred leagues"
+            options={footballLeagues}
+            value={normalizeLeagues(formData.preferredLeagues)}
+            onChange={(preferredLeagues) => setFormData({ ...formData, preferredLeagues })}
           />
         </div>
 
@@ -418,14 +416,14 @@ export function PlayerDialog({ open, onOpenChange, player, onSave }) {
                 onChange={(val) => updateClubHistory(i, "clubName", val)}
               />
               <InputField
-                label="Start Date"
-                type="date"
+                label="Start month"
+                type="month"
                 value={club.startDate}
                 onChange={(val) => updateClubHistory(i, "startDate", val)}
               />
               <InputField
-                label="End Date"
-                type="date"
+                label="End month"
+                type="month"
                 value={club.endDate}
                 onChange={(val) => updateClubHistory(i, "endDate", val)}
               />
@@ -541,17 +539,6 @@ export function PlayerDialog({ open, onOpenChange, player, onSave }) {
               )
           )}
 
-          <Label>Upload CV (PDF/DOC)</Label>
-          <Input
-            type="file"
-            accept=".pdf,.doc,.docx"
-            onChange={(e) =>
-              e.target.files?.[0] && handleCvUpload(e.target.files[0])
-            }
-          />
-          {uploadProgress.cv != null && (
-            <ProgressBar progress={uploadProgress.cv} />
-          )}
         </div>
 
         <div className="flex justify-end gap-2 mt-8">

@@ -120,16 +120,17 @@ export default async function BlogArticlePage({ params }) {
       </Head>
       <main className="w-full">
         {/* Breadcrumb Section */}
-        <section className="w-full h-50 relative flex items-center justify-center py-16 overflow-hidden bg-cover bg-center bg-no-repeat bg-[url('/blog-breadcrumb.jpg')] ">
+        <section className="w-full h-50 relative flex items-end justify-center py-16 overflow-hidden bg-cover bg-right bg-no-repeat bg-[url('/ball-bg.jpg')] ">
+        
           {/* Background overlay for better text readability */}
           <div className="absolute inset-0 bg-linear-to-r from-black/80 via-black/30 to-black/80"></div>
 
           {/* Content */}
-          <div className="relative z-10">
-            <div className="container mx-auto px-4 flex items-center justify-center">
-              <h1 className="text-3xl font-bold text-white">{post.title}</h1>
+          {/* <div className="relative z-10 ">
+            <div className="container mx-auto px-4 flex">
+              <h1 className="text-lg lg:text-3xl font-bold text-white text-left">{post.title}</h1>
             </div>
-          </div>
+          </div> */}
         </section>
         <section className="bg-primary-surface py-4">
           <div className="container mx-auto px-4">

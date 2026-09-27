@@ -1,151 +1,363 @@
 import PDFDocument from "pdfkit";
+import { formatPhoneNumber } from "./formatPhoneNumber.js";
 
 const COLORS = {
-  background: "#f9fafb",
-  navy: "#0b1220",
-  action: "#2563eb",
-  accent: "#fbbf24",
-  muted: "#6b7280",
-  body: "#374151",
-  divider: "#d7dce3",
-  soft: "#eef2f7",
+  paper: "#ffffff",
+  sidebar: "#edf0f4",
+  navy: "#14263f",
+  gold: "#c6a64b",
+  muted: "#647084",
+  body: "#273244",
+  divider: "#cbd2dc",
+  soft: "#f4f6f8",
 };
 
-const PAGE = { width: 595.28, height: 841.89, left: 48, right: 48, top: 48, bottom: 54 };
-const CONTENT_WIDTH = PAGE.width - PAGE.left - PAGE.right;
-const PLATFORM_PHONE = "+1 (862) 340-2213";
+const PAGE = { width: 595.28, height: 841.89 };
+const MARGIN = 22;
+const SIDEBAR = { x: MARGIN, width: 170, inner: 12 };
+const MAIN = { x: 210, width: PAGE.width - 232 };
+const PAGE_BOTTOM = PAGE.height - 24;
 const valueOrUnavailable = (value) => value || "Not provided";
 const fullName = (player) => `${player.firstName || ""} ${player.lastName || ""}`.trim();
 
+function normalizeValue(value) {
+  if (Array.isArray(value)) return value.filter(Boolean).join(", ");
+  if (value && typeof value === "object") return "";
+  return value == null ? "" : String(value).trim();
+}
+
+function clampWords(value, maxWords) {
+  const text = normalizeValue(value);
+  const words = text.match(/\S+/g) || [];
+  return words.length > maxWords ? `${words.slice(0, maxWords).join(" ")}...` : text;
+}
+
 function fillPage(document) {
-  document.save().rect(0, 0, PAGE.width, PAGE.height).fill(COLORS.background).restore();
+  document.save().rect(0, 0, PAGE.width, PAGE.height).fill(COLORS.paper).restore();
+  document.save().rect(SIDEBAR.x, MARGIN, SIDEBAR.width, PAGE.height - MARGIN * 2).fill(COLORS.sidebar).restore();
 }
 
-function drawFooter(document, pageNumber, pageCount) {
-  const y = PAGE.height - 32;
-  document.save().strokeColor(COLORS.divider).lineWidth(0.6).moveTo(PAGE.left, y - 10).lineTo(PAGE.width - PAGE.right, y - 10).stroke();
-  document.font("Helvetica").fontSize(7.5).fillColor(COLORS.muted).text("FootballBank International", PAGE.left, y, { width: 180 });
-  document.text(`contact@footballbank.soccer  |  ${PLATFORM_PHONE}`, PAGE.left + 180, y, { width: 170, align: "center", ellipsis: true });
-  document.text(`${pageNumber} / ${pageCount}`, PAGE.width - PAGE.right - 80, y, { width: 80, align: "right" });
-  document.restore();
+function drawSectionBar(document, title, x, y, width) {
+  document.save().rect(x, y, width, 19).fill(COLORS.navy).restore();
+  document.font("Helvetica-Bold").fontSize(9).fillColor(COLORS.gold).text(title.toUpperCase(), x + 7, y + 4, {
+    width: width - 14,
+    characterSpacing: 0.35,
+    ellipsis: true,
+    lineBreak: false,
+  });
+  return y + 26;
 }
 
-function startPage(document) {
-  document.addPage();
-  fillPage(document);
-  document.x = PAGE.left;
-  document.y = PAGE.top;
+function fitText(document, value, { font = "Helvetica", fontSize = 8.5, width, maxHeight, lineGap = 2 }) {
+  const original = normalizeValue(value);
+  if (!original) return { text: "Not provided", height: fontSize + 2 };
+
+  document.font(font).fontSize(fontSize);
+  const words = original.split(/\s+/);
+  let text = original;
+  let truncated = false;
+  while (words.length && document.heightOfString(text, { width, lineGap }) > maxHeight) {
+    words.pop();
+    text = words.join(" ");
+    truncated = true;
+  }
+  if (truncated && text) {
+    while (text && document.heightOfString(`${text}...`, { width, lineGap }) > maxHeight) {
+      text = text.slice(0, text.lastIndexOf(" "));
+    }
+    text = text ? `${text}...` : "...";
+  }
+
+  return {
+    text,
+    height: Math.min(document.heightOfString(text, { width, lineGap }), maxHeight),
+  };
 }
 
-function ensureSpace(document, height) {
-  if (document.y + height > PAGE.height - PAGE.bottom) startPage(document);
+function drawSidebarField(document, label, value, x, y, width) {
+  document.font("Helvetica-Bold").fontSize(7.3).fillColor(COLORS.muted).text(label.toUpperCase(), x, y, {
+    width,
+    characterSpacing: 0.25,
+    lineBreak: false,
+    ellipsis: true,
+  });
+  const text = normalizeValue(value) || "Not provided";
+  document.font("Helvetica-Bold").fontSize(9.3);
+  const valueHeight = Math.max(12, document.heightOfString(text, { width, lineGap: 1 }));
+  document.fillColor(COLORS.body).text(text, x, y + 10, { width, height: valueHeight, lineGap: 1 });
+  return y + valueHeight + 19;
 }
 
-function drawSectionTitle(document, title) {
-  ensureSpace(document, 42);
-  document.moveDown(0.9);
-  document.font("Helvetica-Bold").fontSize(11).fillColor(COLORS.navy).text(title.toUpperCase(), PAGE.left, document.y, { characterSpacing: 0.5 });
-  document.moveDown(0.35);
-  document.strokeColor(COLORS.action).lineWidth(1.5).moveTo(PAGE.left, document.y).lineTo(PAGE.left + 42, document.y).stroke();
-  document.strokeColor(COLORS.divider).lineWidth(0.6).moveTo(PAGE.left + 52, document.y).lineTo(PAGE.width - PAGE.right, document.y).stroke();
-  document.moveDown(0.65);
+function drawMainSection(document, title, y, ensureSpace) {
+  const sectionY = ensureSpace(42) + 16;
+  document.font("Helvetica-Bold").fontSize(11).fillColor(COLORS.navy).text(title.toUpperCase(), MAIN.x, sectionY, {
+    width: MAIN.width,
+    characterSpacing: 0.45,
+    lineBreak: false,
+  });
+  document.strokeColor(COLORS.gold).lineWidth(1.4).moveTo(MAIN.x, sectionY + 16).lineTo(MAIN.x + 38, sectionY + 16).stroke();
+  document.strokeColor(COLORS.divider).lineWidth(0.6).moveTo(MAIN.x + 46, sectionY + 16).lineTo(MAIN.x + MAIN.width, sectionY + 16).stroke();
+  return sectionY + 26;
 }
 
-function drawDetailRows(document, items) {
-  const columnWidth = (CONTENT_WIDTH - 28) / 2;
-  const rowHeight = 34;
-  for (let index = 0; index < items.length; index += 2) {
-    ensureSpace(document, rowHeight);
-    const y = document.y;
-    [items[index], items[index + 1]].forEach((item, column) => {
-      if (!item) return;
-      const x = PAGE.left + column * (columnWidth + 28);
-      document.font("Helvetica").fontSize(7.5).fillColor(COLORS.muted).text(item[0].toUpperCase(), x, y, { width: columnWidth, characterSpacing: 0.35 });
-      document.font("Helvetica-Bold").fontSize(9.5).fillColor(COLORS.navy).text(String(valueOrUnavailable(item[1])), x, y + 12, { width: columnWidth, ellipsis: true });
-      document.strokeColor(COLORS.divider).lineWidth(0.5).moveTo(x, y + 28).lineTo(x + columnWidth, y + 28).stroke();
-    });
-    document.y = y + rowHeight;
+async function fetchPortrait(url) {
+  if (!url) return null;
+  try {
+    const parsedUrl = new URL(url);
+    if (
+      parsedUrl.protocol !== "https:" ||
+      !["firebasestorage.googleapis.com", "storage.googleapis.com"].includes(parsedUrl.hostname)
+    ) {
+      return null;
+    }
+
+    const response = await fetch(parsedUrl, { signal: AbortSignal.timeout(5000) });
+    const contentType = response.headers.get("content-type")?.split(";")[0];
+    if (!response.ok || !["image/jpeg", "image/png"].includes(contentType)) return null;
+
+    const image = Buffer.from(await response.arrayBuffer());
+    return image.length <= 8 * 1024 * 1024 ? image : null;
+  } catch {
+    return null;
   }
 }
 
-function drawTable(document, headers, rows, widths) {
-  const rowHeight = 22;
-  const tableWidth = widths.reduce((sum, width) => sum + width, 0);
-  const drawRow = (row, header = false) => {
-    ensureSpace(document, rowHeight);
-    const y = document.y;
-    let x = PAGE.left;
-    document.save().fillColor(header ? COLORS.soft : COLORS.background).rect(PAGE.left, y, tableWidth, rowHeight).fill();
-    document.restore();
-    document.strokeColor(COLORS.divider).lineWidth(0.5).moveTo(PAGE.left, y + rowHeight).lineTo(PAGE.left + tableWidth, y + rowHeight).stroke();
-    row.forEach((value, index) => {
-      document.font(header ? "Helvetica-Bold" : "Helvetica").fontSize(header ? 7.5 : 8.5).fillColor(COLORS.navy).text(String(valueOrUnavailable(value)), x + 6, y + 7, { width: widths[index] - 12, ellipsis: true });
-      x += widths[index];
-    });
-    document.y = y + rowHeight;
-  };
+export async function generatePlayerResumePdf(player) {
+  const portrait = await fetchPortrait(player.headshotUrl || player.imageUrl?.[0]);
 
-  drawRow(headers, true);
-  rows.forEach((row) => drawRow(row));
-}
-
-export function generatePlayerResumePdf(player) {
   return new Promise((resolve, reject) => {
-    const document = new PDFDocument({ size: "A4", margin: 0, bufferPages: true, info: { Title: `${fullName(player)} - FootballBank International`, Author: "FootballBank International" } });
+    const document = new PDFDocument({
+      size: "A4",
+      margin: 0,
+      info: { Title: `${fullName(player)} - Player Resume`, Author: fullName(player) },
+    });
     const chunks = [];
     document.on("data", (chunk) => chunks.push(chunk));
     document.on("end", () => resolve(Buffer.concat(chunks)));
     document.on("error", reject);
 
     fillPage(document);
-    document.x = PAGE.left;
-    document.y = PAGE.top;
+    const sidebarX = SIDEBAR.x + SIDEBAR.inner;
+    const sidebarWidth = SIDEBAR.width - SIDEBAR.inner * 2;
+    const portraitX = sidebarX;
+    const portraitY = 30;
+    const portraitWidth = sidebarWidth;
+    const portraitHeight = 230;
 
-    document.rect(PAGE.left, 48, 52, 52).fill(COLORS.navy);
-    document.font("Helvetica-Bold").fontSize(22).fillColor("#ffffff").text("F", 62, 62);
-    document.fillColor(COLORS.accent).text("B", 77, 62);
-    document.font("Helvetica-Bold").fontSize(22).fillColor(COLORS.navy).text("FootballBank", 116, 53);
-    document.font("Helvetica-Bold").fontSize(7.5).fillColor(COLORS.action).text("I N T E R N A T I O N A L", 117, 79);
-    document.font("Helvetica").fontSize(8).fillColor(COLORS.muted).text("contact@footballbank.soccer", 370, 57, { width: 177, align: "right" });
-    document.font("Helvetica").fontSize(8).fillColor(COLORS.muted).text(PLATFORM_PHONE, 370, 72, { width: 177, align: "right" });
-    document.strokeColor(COLORS.action).lineWidth(2).moveTo(PAGE.left, 119).lineTo(PAGE.width - PAGE.right, 119).stroke();
-    document.y = 145;
-
-    document.font("Helvetica-Bold").fontSize(8).fillColor(COLORS.action).text("PROFESSIONAL PLAYER RESUME", PAGE.left, document.y, { characterSpacing: 0.8 });
-    document.moveDown(0.45).font("Helvetica-Bold").fontSize(29).fillColor(COLORS.navy).text(fullName(player), PAGE.left, document.y, { width: CONTENT_WIDTH });
-    document.moveDown(0.25).font("Helvetica").fontSize(12).fillColor(COLORS.muted).text(`${valueOrUnavailable(player.position)} | ${valueOrUnavailable(player.country)}`);
-    document.moveDown(0.3).fontSize(8.5).fillColor(COLORS.body).text(`Player contact: ${valueOrUnavailable(player.email)}  |  ${valueOrUnavailable(player.phone)}  |  ${valueOrUnavailable(player.country)}`);
-
-    drawSectionTitle(document, "Player details");
-    drawDetailRows(document, [
-      ["Date of birth", player.dob], ["Height", player.height], ["Weight", player.weight], ["Preferred foot", player.foot],
-      ["Contract status", player.contractStatus], ["Available from", player.availableFrom], ["Preferred leagues", player.preferredLeagues], ["Country code", player.countryCode],
-    ]);
-
-    if (player.description) {
-      drawSectionTitle(document, "Profile");
-      ensureSpace(document, 60);
-      document.font("Helvetica").fontSize(10).fillColor(COLORS.body).text(player.description, PAGE.left, document.y, { width: CONTENT_WIDTH, lineGap: 4, align: "left" });
+    document.save().rect(portraitX, portraitY, portraitWidth, portraitHeight).fill(COLORS.navy).restore();
+    if (portrait) {
+      document.save().rect(portraitX, portraitY, portraitWidth, portraitHeight).clip();
+      document.image(portrait, portraitX, portraitY, {
+        cover: [portraitWidth, portraitHeight],
+        align: "center",
+        valign: "center",
+      });
+      document.restore();
+    } else {
+      const initials = `${player.firstName?.[0] || ""}${player.lastName?.[0] || ""}`.toUpperCase() || "P";
+      document.font("Helvetica-Bold").fontSize(38).fillColor("#ffffff").text(initials, portraitX, portraitY + 66, {
+        width: portraitWidth,
+        align: "center",
+        lineBreak: false,
+      });
     }
 
-    const stats = player.stats || {};
-    const statRows = Object.entries(stats).flatMap(([group, values]) => Object.entries(values || {}).map(([label, value]) => [group, label, value]));
+    let sidebarY = 272;
+    sidebarY = drawSectionBar(document, "Player profile", sidebarX, sidebarY, sidebarWidth);
+    const profileText = clampWords(player.description || "No profile summary provided.", 80);
+    document.font("Helvetica").fontSize(8.7);
+    const profileHeight = document.heightOfString(profileText, { width: sidebarWidth, lineGap: 2 });
+    document.fillColor(COLORS.body).text(profileText, sidebarX, sidebarY, {
+      width: sidebarWidth,
+      height: profileHeight,
+      lineGap: 2,
+    });
+    sidebarY += Math.max(46, profileHeight) + 16;
+
+    sidebarY = drawSectionBar(document, "Player details", sidebarX, sidebarY, sidebarWidth);
+    const sidebarFields = [
+      ["Current club", normalizeValue(player.currentClub) || "Not provided"],
+      ["Country", player.country],
+      ["Date of birth", player.dob],
+      ["Height", player.height],
+      ["Weight", player.weight],
+      ["Preferred foot", player.foot],
+      ["Preferred leagues", player.preferredLeagues],
+    ];
+    for (const [label, value] of sidebarFields) {
+      if (label === "Current club" || normalizeValue(value)) {
+        sidebarY = drawSidebarField(document, label, value, sidebarX, sidebarY, sidebarWidth);
+      }
+    }
+
+    let mainY = 30;
+    const drawContinuationHeader = () => {
+      fillPage(document);
+      document.font("Helvetica-Bold").fontSize(16).fillColor(COLORS.navy).text(fullName(player).toUpperCase(), MAIN.x, 30, {
+        width: MAIN.width,
+        ellipsis: true,
+        lineBreak: false,
+      });
+      document.font("Helvetica").fontSize(8).fillColor(COLORS.muted).text("PLAYER RESUME - CONTINUED", MAIN.x, 52, {
+        width: MAIN.width,
+        characterSpacing: 0.6,
+      });
+      mainY = 78;
+    };
+    const ensureMainSpace = (height) => {
+      if (mainY + height <= PAGE_BOTTOM) return mainY;
+      document.addPage();
+      drawContinuationHeader();
+      return mainY;
+    };
+
+    const nameParts = [player.firstName, player.lastName].filter(Boolean);
+    nameParts.forEach((part, index) => {
+      const text = String(part).toUpperCase();
+      let fontSize = 34;
+      document.font("Helvetica-Bold");
+      while (fontSize > 19 && document.fontSize(fontSize).widthOfString(text) > MAIN.width) fontSize -= 1;
+      document.fontSize(fontSize).fillColor(index === 0 ? COLORS.navy : COLORS.gold).text(text, MAIN.x, mainY, {
+        width: MAIN.width,
+        lineBreak: false,
+      });
+      mainY += 37;
+    });
+
+    const bandY = mainY + 2;
+    document.save().rect(MAIN.x, bandY, MAIN.width, 24).fill(COLORS.navy).restore();
+    document.font("Helvetica-Bold").fontSize(9).fillColor("#ffffff").text(valueOrUnavailable(player.position).toUpperCase(), MAIN.x + 9, bandY + 7, {
+      width: MAIN.width * 0.48,
+      ellipsis: true,
+      lineBreak: false,
+    });
+    document.font("Helvetica-Bold").fontSize(8.5).fillColor(COLORS.gold).text(normalizeValue(player.currentClub) || normalizeValue(player.country) || "PLAYER", MAIN.x + MAIN.width * 0.5, bandY + 7, {
+      width: MAIN.width * 0.48 - 9,
+      align: "right",
+      ellipsis: true,
+      lineBreak: false,
+    });
+    mainY = bandY + 38;
+
+    mainY = drawMainSection(document, "Contact", mainY, ensureMainSpace);
+    const contactItems = [
+      ["Email", player.email],
+      ["Phone", formatPhoneNumber(player.phone, player.phoneCountryCode)],
+      ["Country", player.country],
+    ].filter(([, value]) => normalizeValue(value));
+    const contactColumnWidth = (MAIN.width - 18) / 2;
+    contactItems.forEach(([label, value], index) => {
+      const column = index % 2;
+      const row = Math.floor(index / 2);
+      const x = MAIN.x + column * (contactColumnWidth + 18);
+      const y = mainY + row * 31;
+      document.font("Helvetica-Bold").fontSize(7.3).fillColor(COLORS.muted).text(label.toUpperCase(), x, y, {
+        width: contactColumnWidth,
+        characterSpacing: 0.3,
+        lineBreak: false,
+      });
+      document.font("Helvetica").fontSize(9.2).fillColor(COLORS.body).text(normalizeValue(value), x, y + 10, {
+        width: contactColumnWidth,
+        ellipsis: true,
+        lineBreak: false,
+      });
+    });
+    mainY += Math.ceil(contactItems.length / 2) * 31 + 8;
+
+    const statRows = Object.entries(player.stats || {}).flatMap(([group, values]) =>
+      values && typeof values === "object"
+        ? Object.entries(values)
+            .filter(([, value]) => value !== "" && value != null)
+            .map(([label, value]) => [`${group} · ${label.replace(/([A-Z])/g, " $1")}`, value])
+        : [],
+    );
+    mainY = drawMainSection(document, "Athlete stats", mainY, ensureMainSpace);
     if (statRows.length) {
-      drawSectionTitle(document, "Performance statistics");
-      drawTable(document, ["Category", "Metric", "Value"], statRows, [145, 190, 164]);
+      const columns = 3;
+      const gap = 6;
+      const cellWidth = (MAIN.width - gap * (columns - 1)) / columns;
+      const cellHeight = 43;
+      for (let index = 0; index < statRows.length; index += columns) {
+        ensureMainSpace(cellHeight + 6);
+        statRows.slice(index, index + columns).forEach(([label, value], column) => {
+          const x = MAIN.x + column * (cellWidth + gap);
+          document.save().rect(x, mainY, cellWidth, cellHeight).fill(COLORS.soft).restore();
+          document.font("Helvetica-Bold").fontSize(18).fillColor(COLORS.navy).text(String(value), x + 7, mainY + 4, {
+            width: cellWidth - 14,
+            ellipsis: true,
+            lineBreak: false,
+          });
+          document.font("Helvetica").fontSize(7.2).fillColor(COLORS.muted).text(String(label).toUpperCase(), x + 7, mainY + 27, {
+            width: cellWidth - 14,
+            ellipsis: true,
+            lineBreak: false,
+          });
+        });
+        mainY += cellHeight + 6;
+      }
+    } else {
+      ensureMainSpace(18);
+      document.font("Helvetica").fontSize(8.5).fillColor(COLORS.muted).text("No statistics provided.", MAIN.x, mainY, { width: MAIN.width });
+      mainY += 18;
     }
 
     const clubHistory = Array.isArray(player.clubHistory) ? player.clubHistory : [];
+    mainY = drawMainSection(document, "Club history", mainY + 4, ensureMainSpace);
     if (clubHistory.length) {
-      drawSectionTitle(document, "Club history");
-      drawTable(document, ["Club", "Position", "Period"], clubHistory.map((club) => [club.clubName, club.position, `${club.startDate || ""} - ${club.endDate || "Present"}`]), [190, 145, 164]);
+      for (const club of clubHistory) {
+        ensureMainSpace(38);
+        document.font("Helvetica-Bold").fontSize(10.5).fillColor(COLORS.navy).text(valueOrUnavailable(club.clubName), MAIN.x, mainY, {
+          width: MAIN.width * 0.55,
+          ellipsis: true,
+          lineBreak: false,
+        });
+        document.font("Helvetica-Bold").fontSize(8.5).fillColor(COLORS.gold).text(valueOrUnavailable(club.position), MAIN.x + MAIN.width * 0.58, mainY, {
+          width: MAIN.width * 0.42,
+          align: "right",
+          ellipsis: true,
+          lineBreak: false,
+        });
+        document.font("Helvetica").fontSize(8.5).fillColor(COLORS.muted).text(`${club.startDate || ""} - ${club.endDate || "Present"}`, MAIN.x, mainY + 13, {
+          width: MAIN.width,
+          ellipsis: true,
+          lineBreak: false,
+        });
+        document.strokeColor(COLORS.divider).lineWidth(0.5).moveTo(MAIN.x, mainY + 31).lineTo(MAIN.x + MAIN.width, mainY + 31).stroke();
+        mainY += 38;
+      }
+    } else {
+      ensureMainSpace(18);
+      document.font("Helvetica").fontSize(8.5).fillColor(COLORS.muted).text("No club history provided.", MAIN.x, mainY, { width: MAIN.width });
+      mainY += 18;
     }
 
-    const range = document.bufferedPageRange();
-    for (let index = range.start; index < range.start + range.count; index += 1) {
-      document.switchToPage(index);
-      drawFooter(document, index + 1, range.count);
+    const availability = [
+      ["Contract status", player.contractStatus],
+      ["Available from", player.availableFrom],
+    ].filter(([, value]) => normalizeValue(value));
+    if (availability.length) {
+      mainY = drawMainSection(document, "Availability", mainY + 4, ensureMainSpace);
+      availability.forEach(([label, value]) => {
+        ensureMainSpace(25);
+        document.font("Helvetica-Bold").fontSize(8).fillColor(COLORS.muted).text(label.toUpperCase(), MAIN.x, mainY, {
+          width: 112,
+          characterSpacing: 0.25,
+          lineBreak: false,
+        });
+        const fitted = fitText(document, value, {
+          font: "Helvetica",
+          fontSize: 9.2,
+          width: MAIN.width - 118,
+          maxHeight: 24,
+        });
+        document.fillColor(COLORS.body).text(fitted.text, MAIN.x + 118, mainY, {
+          width: MAIN.width - 118,
+          height: 24,
+        });
+        mainY += Math.max(21, fitted.height + 5);
+      });
     }
+
     document.end();
   });
 }

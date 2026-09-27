@@ -126,13 +126,13 @@ export default async function BlogArticlePage({ params }) {
           <div className="absolute inset-0 bg-linear-to-r from-black/80 via-black/30 to-black/80"></div>
 
           {/* Content */}
-          {/* <div className="relative z-10 ">
+          <div className="md:hidden relative z-10 ">
             <div className="container mx-auto px-4 flex">
               <h1 className="text-lg lg:text-3xl font-bold text-white text-left">{post.title}</h1>
             </div>
-          </div> */}
+          </div>
         </section>
-        
+
         {/* <section className="bg-primary-surface py-4">
           <div className="container mx-auto px-4">
             <div className="max-w-6xl mx-auto">
@@ -168,7 +168,7 @@ export default async function BlogArticlePage({ params }) {
                     {formatFullDate(post.createdAt)}
                   </span>
                 </div>
-                <h1 className="text-2xl md:text-3xl font-bold mb-4 text-primary-text leading-tight">
+                <h1 className="hidden md:block text-lg md:text-3xl font-bold mb-4 text-primary-text leading-tight">
                   {post.title}
                 </h1>
               </header>

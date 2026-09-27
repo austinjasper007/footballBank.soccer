@@ -49,6 +49,7 @@
     "class-variance-authority": "^0.7.1",
     "date-fns": "^4.1.0",
     "firebase": "^12.0.0",
+    "hostinger-api-mcp": "^1.63.4",
     "jose": "^6.1.0",
     "jsonwebtoken": "^9.0.2",
     "libphonenumber-js": "^1.13.12",

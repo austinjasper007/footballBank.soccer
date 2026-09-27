@@ -121,7 +121,7 @@ export default async function BlogArticlePage({ params }) {
       <main className="w-full">
         {/* Breadcrumb Section */}
         <section className="w-full h-50 relative flex items-end justify-center py-16 overflow-hidden bg-cover bg-right bg-no-repeat bg-[url('/ball-bg.jpg')] ">
-        
+
           {/* Background overlay for better text readability */}
           <div className="absolute inset-0 bg-linear-to-r from-black/80 via-black/30 to-black/80"></div>
 
@@ -132,7 +132,8 @@ export default async function BlogArticlePage({ params }) {
             </div>
           </div> */}
         </section>
-        <section className="bg-primary-surface py-4">
+        
+        {/* <section className="bg-primary-surface py-4">
           <div className="container mx-auto px-4">
             <div className="max-w-6xl mx-auto">
               <nav className="flex items-center gap-2 text-sm text-primary-muted">
@@ -148,7 +149,7 @@ export default async function BlogArticlePage({ params }) {
               </nav>
             </div>
           </div>
-        </section>
+        </section> */}
 
         {/* Article Content */}
         <section className="py-8">

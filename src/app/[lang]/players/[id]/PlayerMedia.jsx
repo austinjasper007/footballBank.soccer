@@ -29,9 +29,10 @@ export default function PlayerMedia({
   canViewDetails,
   canDownloadResume,
   lang,
+  initialSection,
   id,
 }) {
-  const [activeSection, setActiveSection] = useState("overview");
+  const [activeSection, setActiveSection] = useState(initialSection || "overview");
   const [selectedImage, setSelectedImage] = useState(null);
   useBodyScrollLock(selectedImage !== null);
   const images = [
@@ -88,10 +89,11 @@ export default function PlayerMedia({
               FootballBank talent collection
             </div>
           </div>
-          <div className="mt-10 grid grid-cols-3 border-t border-primary-text-inverse/15 pt-4 sm:pt-6">
+          <div className="mt-10 grid grid-cols-2 border-t border-primary-text-inverse/15 pt-4 sm:grid-cols-4 sm:pt-6">
             {[
               ["Position", player.position],
               ["Country", player.country],
+              ["Current club", player.currentClub],
               ["Access", canViewDetails ? "Approved" : "Preview"],
             ].map(([label, value]) => (
               <div
@@ -170,7 +172,7 @@ export default function PlayerMedia({
         )}
 
         {activeSection === "media" && (
-          <section className="mt-10">
+          <section id="media" className="mt-10">
             <div className="flex items-end justify-between gap-4">
               <div>
                 <p className="eyebrow flex items-center gap-3">
@@ -186,54 +188,61 @@ export default function PlayerMedia({
                 </p>
               )}
             </div>
-            {images.length > 0 && (
-              <div className="mt-8 grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
-                {images.map((image, index) => (
-                  <button
-                    key={`${image}-${index}`}
-                    type="button"
-                    onClick={() => setSelectedImage(index)}
-                    className="group relative aspect-square overflow-hidden bg-primary-navy"
-                  >
-                    <Image
-                      src={image}
-                      alt={`${fullName} photo ${index + 1}`}
-                      fill
-                      sizes="(max-width: 640px) 33vw, 16vw"
-                      className="object-cover transition-transform group-hover:scale-105"
-                    />
-                    <span className="absolute right-2 bottom-2 inline-flex size-7 items-center justify-center bg-primary-card/90 text-primary-text">
-                      <Maximize2 className="size-3.5" />
-                    </span>
-                  </button>
-                ))}
-              </div>
-            )}
-            {videos.length > 0 && (
-              <div className="mt-12 grid gap-6 lg:grid-cols-2">
-                {videos.map((video, index) => (
-                  <div
-                    key={video}
-                    className="overflow-hidden border border-divider bg-primary-card"
-                  >
-                    <video
-                      src={video}
-                      controls
-                      preload="metadata"
-                      className="aspect-video w-full bg-primary-navy"
-                    />
-                    <p className="p-4 text-sm font-semibold">
-                      {index === 0
-                        ? "Primary highlights"
-                        : `Additional video ${index}`}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-            {images.length === 0 && videos.length === 0 && (
-              <EmptyInline icon={Camera} text="No media available." />
-            )}
+            <div className="mt-8">
+              <h3 className="font-heading text-xl font-semibold">Photos</h3>
+              {images.length > 0 ? (
+                <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
+                  {images.map((image, index) => (
+                    <button
+                      key={`${image}-${index}`}
+                      type="button"
+                      onClick={() => setSelectedImage(index)}
+                      className="group relative aspect-square overflow-hidden bg-primary-navy"
+                    >
+                      <Image
+                        src={image}
+                        alt={`${fullName} photo ${index + 1}`}
+                        fill
+                        sizes="(max-width: 640px) 33vw, 16vw"
+                        className="object-cover transition-transform group-hover:scale-105"
+                      />
+                      <span className="absolute right-2 bottom-2 inline-flex size-7 items-center justify-center bg-primary-card/90 text-primary-text">
+                        <Maximize2 className="size-3.5" />
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <EmptyInline icon={Camera} text="No photos available." />
+              )}
+            </div>
+            <div className="mt-10">
+              <h3 className="font-heading text-xl font-semibold">Videos</h3>
+              {videos.length > 0 ? (
+                <div className="mt-4 grid gap-6 lg:grid-cols-2">
+                  {videos.map((video, index) => (
+                    <div
+                      key={video}
+                      className="overflow-hidden border border-divider bg-primary-card"
+                    >
+                      <video
+                        src={video}
+                        controls
+                        preload="metadata"
+                        className="aspect-video w-full bg-primary-navy"
+                      />
+                      <p className="p-4 text-sm font-semibold">
+                        {index === 0
+                          ? "Primary highlights"
+                          : `Additional video ${index}`}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <EmptyInline icon={Play} text="No video available." />
+              )}
+            </div>
           </section>
         )}
 

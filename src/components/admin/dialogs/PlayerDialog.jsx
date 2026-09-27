@@ -55,6 +55,7 @@ export function PlayerDialog({ open, onOpenChange, player, onSave }) {
     dob: player?.dob || "",
     country: player?.country || "",
     countryCode: player?.countryCode || "",
+    currentClub: player?.currentClub || "",
     position: player?.position || "",
     height: player?.height || "",
     weight: player?.weight || "",
@@ -102,6 +103,7 @@ export function PlayerDialog({ open, onOpenChange, player, onSave }) {
     dob: player?.dob || "",
     country: player?.country || "",
     countryCode: player?.countryCode || "",
+    currentClub: player?.currentClub || "",
     position: player?.position || "",
     height: player?.height || "",
     weight: player?.weight || "",
@@ -334,6 +336,11 @@ export function PlayerDialog({ open, onOpenChange, player, onSave }) {
               </SelectContent>
             </Select>
           </div>
+          <InputField
+            label="Current Club"
+            value={formData.currentClub}
+            onChange={(val) => setFormData({ ...formData, currentClub: val })}
+          />
           <div>
             <Label>Position *</Label>
             <Select

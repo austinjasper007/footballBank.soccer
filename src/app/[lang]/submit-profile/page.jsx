@@ -55,6 +55,7 @@ export default function PlayerSubmissionForm() {
     dob: "",
     country: "",
     countryCode: "",
+    currentClub: "",
     position: "",
     foot: "",
     height: "",
@@ -358,6 +359,13 @@ export default function PlayerSubmissionForm() {
                 </SelectContent>
               </Select>
             </div>
+            <InputField
+              label={t?.currentClub || "Current club"}
+              value={formData.currentClub}
+              onChange={(value) =>
+                setFormData((previous) => ({ ...previous, currentClub: value }))
+              }
+            />
             <div>
               <Label>{t?.position || "Position"} *</Label>
               <Select

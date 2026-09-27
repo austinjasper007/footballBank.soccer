@@ -7,6 +7,7 @@ import {
   FileCheck,
   FileText,
   Settings,
+  House,
   Menu,
   ChevronLeft,
   ChevronRight,
@@ -14,6 +15,7 @@ import {
 import Image from 'next/image';
 import { useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 const navigationItems = [
   { id: 'dashboard', icon: BarChart3, label: 'Dashboard' },
@@ -28,6 +30,8 @@ const navigationItems = [
 
 export function AdminSidebar({ activeView, onViewChange, collapsed, onToggleCollapse }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const pathname = usePathname();
+  const lang = pathname?.split('/')[1] || 'en';
 
   return (
     <>
@@ -52,7 +56,7 @@ export function AdminSidebar({ activeView, onViewChange, collapsed, onToggleColl
       {/* Sidebar */}
       <aside
         className={`
-          fixed top-0 left-0 h-full z-50 md:z-10
+          fixed top-0 left-0 flex h-full flex-col z-50 md:z-10
           bg-primary-navy border-r border-primary-text-inverse/10 text-primary-text-inverse
           transition-all duration-300 ease-in-out
           ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} 
@@ -113,7 +117,18 @@ export function AdminSidebar({ activeView, onViewChange, collapsed, onToggleColl
             })}
           </ul>
         </nav>
-        
+        <div className="border-t border-primary-text-inverse/10 p-2">
+          <Link
+            href={`/${lang}`}
+            onClick={() => setMobileOpen(false)}
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-primary-text-inverse/65 transition hover:bg-primary-text-inverse/10 hover:text-primary-text-inverse"
+            aria-label="Home"
+            title="Home"
+          >
+            <House className="w-5 h-5 shrink-0" />
+            {!collapsed && <span>Home</span>}
+          </Link>
+        </div>
       </aside>
     </>
   );

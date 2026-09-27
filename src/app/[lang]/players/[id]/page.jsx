@@ -20,8 +20,9 @@ export async function generateMetadata({ params }) {
   });
 }
 
-export default async function PlayerPage({ params }) {
+export default async function PlayerPage({ params, searchParams }) {
   const { id, lang } = await params;
+  const { tab } = await searchParams;
   const player = await getPlayerById(id);
   if (!player) notFound();
 
@@ -40,6 +41,7 @@ export default async function PlayerPage({ params }) {
     lastName: player.lastName,
     position: player.position,
     country: player.country,
+    currentClub: player.currentClub,
     headshotUrl: player.headshotUrl,
     imageUrl: player.imageUrl || [],
     videoPrimary: player.videoPrimary,
@@ -56,6 +58,7 @@ export default async function PlayerPage({ params }) {
       canViewDetails={access.profileAccess}
       canDownloadResume={access.cvAccess}
       lang={lang}
+      initialSection={tab === "media" ? "media" : "overview"}
       id={"highlights"}
     />
   );

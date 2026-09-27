@@ -339,7 +339,7 @@ export default async function HomePage({ params }) {
                       <ArrowUpRight className="h-3.5 w-3.5" />
                     </Link>
                     <Link
-                      href={`/${lang}/players/${player.id}#highlights`}
+                      href={`/${lang}/players/${player.id}?tab=media#media`}
                       className="inline-flex items-center gap-1.5 text-sm text-primary-text"
                     >
                       <Play className="h-3.5 w-3.5" />{" "}
@@ -350,11 +350,6 @@ export default async function HomePage({ params }) {
               </article>
             ))}
           </div>
-
-          <p className="mt-6 text-[0.7rem] text-muted-foreground">
-            {home?.previewNote ||
-              "Preview records use supplied footage. Detailed club information pending confirmation."}
-          </p>
         </section>
 
         {/* Recruitment brief */}
@@ -514,7 +509,7 @@ export default async function HomePage({ params }) {
         {/* Founder */}
         <section className="bg-primary-navy">
           <div className="mx-auto grid max-w-7xl items-center gap-14 px-6 py-16 lg:grid-cols-2">
-            <div className="relative w-[80%] aspect-4/3 overflow-hidden">
+            <div className="relative aspect-4/3 w-full overflow-hidden lg:w-[80%]">
               <Image
                 src={agentInfo?.profilePhoto || "/FootballBank_agent.jpg"}
                 alt={`${agentInfo?.name || "Ayodeji Michael F."} portrait`}

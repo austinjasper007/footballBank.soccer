@@ -13,7 +13,7 @@ import {
 import { countryList } from "@/lib/variousCountryListFormats";
 import "aos/dist/aos.css";
 import { getAllPlayers } from "@/actions/publicActions";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Play } from "lucide-react";
 import Link from "next/link";
 
 export default function PlayersClient({ lang, dict }) {
@@ -256,13 +256,19 @@ export default function PlayersClient({ lang, dict }) {
                             <p className="mt-3 text-[0.72rem] text-primary-muted">
                               {player.contractStatus || "Available"}
                             </p>
-                            <div className="mt-4 flex items-center justify-center border-t border-divider pt-3">
+                            <div className="mt-4 flex items-center justify-between border-t border-divider pt-3">
                               <Link
                                 href={`/${lang}/players/${player.id}`}
                                 className="inline-flex items-center gap-1.5 text-sm font-medium text-primary-action hover:underline"
                               >
                                 {dict.homepage.featuredPlayers.viewProfile}{" "}
                                 <ArrowUpRight className="h-3.5 w-3.5" />
+                              </Link>
+                              <Link
+                                href={`/${lang}/players/${player.id}?tab=media#media`}
+                                className="inline-flex items-center gap-1.5 text-sm text-primary-text hover:text-primary-action"
+                              >
+                                <Play className="size-3.5" /> Watch highlights
                               </Link>
                             </div>
                           </div>

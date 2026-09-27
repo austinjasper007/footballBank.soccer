@@ -158,8 +158,10 @@ import {
   ChevronRight,
   Menu,
   X,
+  House,
 } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 export function EditorSidebar({
   activeView,
@@ -168,6 +170,8 @@ export function EditorSidebar({
   onToggleCollapse,
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const pathname = usePathname();
+  const lang = pathname?.split("/")[1] || "en";
 
   const navigationItems = [
     { id: "overview", icon: BarChart3, label: "Overview", href: "/editor" },
@@ -249,11 +253,13 @@ export function EditorSidebar({
         {/* Footer - pinned at bottom */}
         <div className="border-t border-primary-text-inverse/10 p-2">
           <Link
-            href="/en"
+            href={`/${lang}`}
             className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-primary-text-inverse/65 transition hover:bg-primary-text-inverse/10 hover:text-primary-text-inverse"
+            aria-label="Home"
+            title="Home"
           >
-            <ChevronLeft className="size-5 shrink-0" />
-            {!collapsed && <span>View homepage</span>}
+            <House className="size-5 shrink-0" />
+            {!collapsed && <span>Home</span>}
           </Link>
           {!collapsed && (
             <div className="mt-2 px-3 text-[10px] uppercase tracking-[0.16em] text-primary-text-inverse/35">
@@ -344,12 +350,12 @@ export function EditorSidebar({
 
         <div className="border-t border-primary-text-inverse/10 p-2">
           <Link
-            href="/en"
+            href={`/${lang}`}
             onClick={toggleMobile}
             className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-primary-text-inverse/65 hover:bg-primary-text-inverse/10 hover:text-primary-text-inverse"
           >
-            <ChevronLeft className="size-5" />
-            View homepage
+            <House className="size-5" />
+            Home
           </Link>
         </div>
       </div>

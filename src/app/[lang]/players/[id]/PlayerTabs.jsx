@@ -115,7 +115,9 @@ export default function PlayerTabs({ player, onImageClick }) {
                 </p>
                 <p>
                   <strong>Preferred Destination:</strong>{" "}
-                  {player.preferredLeagues || "unavailable"}
+                  {Array.isArray(player.preferredLeagues)
+                    ? player.preferredLeagues.join(", ") || "unavailable"
+                    : player.preferredLeagues || "unavailable"}
                 </p>
                 <p>
                   <strong>Salary Expectation:</strong>{" "}

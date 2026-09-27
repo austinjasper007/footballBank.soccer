@@ -28,6 +28,7 @@ import {
 import { useAuth } from "@/context/NewAuthContext";
 import { Button } from "@/components/ui/button";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
+import { formatPhoneNumber } from "@/lib/formatPhoneNumber";
 import { getClientDictionary } from "@/lib/client-dictionaries";
 
 const tabKeys = ["overview", "stats", "career", "media", "contact"];
@@ -208,7 +209,9 @@ export default function PlayerProfilePage() {
                 <div>
                   <dt className="text-primary-muted">{t?.preferredLeagues || "Preferred leagues"}</dt>
                   <dd className="mt-1 font-semibold">
-                    {player.preferredLeagues || (t?.openToAll || "Open to all")}
+                    {Array.isArray(player.preferredLeagues)
+                      ? player.preferredLeagues.join(", ") || (t?.openToAll || "Open to all")
+                      : player.preferredLeagues || (t?.openToAll || "Open to all")}
                   </dd>
                 </div>
               </dl>
@@ -348,7 +351,11 @@ export default function PlayerProfilePage() {
             />
             <div className="mt-8 grid gap-5 border-t border-divider pt-6 sm:grid-cols-2">
               <Info icon={Mail} label={t?.email || "Email"} value={player.email} />
-              <Info icon={Phone} label={t?.phone || "Phone"} value={player.phone} />
+              <Info
+                icon={Phone}
+                label={t?.phone || "Phone"}
+                value={formatPhoneNumber(player.phone, player.phoneCountryCode)}
+              />
               <Info icon={MapPin} label={t?.country || "Country"} value={player.country} />
               <Info
                 icon={Calendar}

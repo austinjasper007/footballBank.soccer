@@ -85,7 +85,7 @@ export default async function BlogArticlePage({ params }) {
   const recentPosts = allPosts.slice(0, 4).map((p) => ({
     id: p._id.toString(),
     title: p.title,
-    imageUrl: Array.isArray(p.imageUrl) ? p.imageUrl : [p.imageUrl],
+    imageUrl: (Array.isArray(p.imageUrl) ? p.imageUrl : [p.imageUrl]).filter(Boolean),
     createdAt: p.createdAt.toISOString(),
   }));
 
@@ -229,7 +229,9 @@ export default async function BlogArticlePage({ params }) {
                         {recentPosts.map((recentPost, index) => (
                           <div key={recentPost.id} className={`flex gap-3 ${index < recentPosts.length - 1 ? "pb-3 border-b border-divider" : ""}`}>
                             <div className="w-16 h-16 bg-white rounded shrink-0 border border-divider">
-                              <img src={recentPost.imageUrl[0]} alt={recentPost.title} className="object-cover w-16 h-16"/>
+                              {recentPost.imageUrl[0] && (
+                                <img src={recentPost.imageUrl[0]} alt={recentPost.title} className="object-cover w-16 h-16"/>
+                              )}
                             </div>
                             <div className="flex-1">
                               <h4 className="text-sm font-medium text-primary-text mb-1 leading-tight">

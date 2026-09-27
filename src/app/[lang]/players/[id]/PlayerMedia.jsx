@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import ResumeRequestForm from "./ResumeRequestForm";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
+import { formatPhoneNumber } from "@/lib/formatPhoneNumber";
 
 const sections = ["overview", "media", "stats", "career", "contact"];
 
@@ -33,9 +34,14 @@ export default function PlayerMedia({
   const [activeSection, setActiveSection] = useState("overview");
   const [selectedImage, setSelectedImage] = useState(null);
   useBodyScrollLock(selectedImage !== null);
-  const images = player.imageUrl?.length
-    ? player.imageUrl
-    : ["/logo/logo3.svg"];
+  const images = [
+    ...new Set(
+      [
+        player.headshotUrl,
+        ...(Array.isArray(player.imageUrl) ? player.imageUrl : []),
+      ].filter(Boolean),
+    ),
+  ];
   const headshot = player.headshotUrl || images[0];
   const videos = [
     player.videoPrimary,
@@ -53,13 +59,15 @@ export default function PlayerMedia({
           <div className="flex flex-col gap-7 sm:flex-row sm:items-end sm:justify-between sm:gap-8">
             <div className="flex min-w-0 items-center gap-4 sm:gap-6">
               <div className="relative size-20 shrink-0 overflow-hidden bg-primary-text-inverse/10 sm:size-28 lg:size-32">
-                <Image
-                  src={headshot}
-                  alt={fullName}
-                  fill
-                  sizes="(max-width: 640px) 80px, 128px"
-                  className="object-cover"
-                />
+                {headshot && (
+                  <Image
+                    src={headshot}
+                    alt={fullName}
+                    fill
+                    sizes="(max-width: 640px) 80px, 128px"
+                    className="object-cover"
+                  />
+                )}
               </div>
               <div className="min-w-0">
                 <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary-accent">
@@ -172,31 +180,35 @@ export default function PlayerMedia({
                   Photos and footage.
                 </h2>
               </div>
-              <p className="hidden text-sm text-primary-muted sm:block">
-                Select a photo to open the gallery.
-              </p>
+              {images.length > 0 && (
+                <p className="hidden text-sm text-primary-muted sm:block">
+                  Select a photo to open the gallery.
+                </p>
+              )}
             </div>
-            <div className="mt-8 grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
-              {images.map((image, index) => (
-                <button
-                  key={`${image}-${index}`}
-                  type="button"
-                  onClick={() => setSelectedImage(index)}
-                  className="group relative aspect-square overflow-hidden bg-primary-navy"
-                >
-                  <Image
-                    src={image}
-                    alt={`${fullName} photo ${index + 1}`}
-                    fill
-                    sizes="(max-width: 640px) 33vw, 16vw"
-                    className="object-cover transition-transform group-hover:scale-105"
-                  />
-                  <span className="absolute right-2 bottom-2 inline-flex size-7 items-center justify-center bg-primary-card/90 text-primary-text">
-                    <Maximize2 className="size-3.5" />
-                  </span>
-                </button>
-              ))}
-            </div>
+            {images.length > 0 && (
+              <div className="mt-8 grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
+                {images.map((image, index) => (
+                  <button
+                    key={`${image}-${index}`}
+                    type="button"
+                    onClick={() => setSelectedImage(index)}
+                    className="group relative aspect-square overflow-hidden bg-primary-navy"
+                  >
+                    <Image
+                      src={image}
+                      alt={`${fullName} photo ${index + 1}`}
+                      fill
+                      sizes="(max-width: 640px) 33vw, 16vw"
+                      className="object-cover transition-transform group-hover:scale-105"
+                    />
+                    <span className="absolute right-2 bottom-2 inline-flex size-7 items-center justify-center bg-primary-card/90 text-primary-text">
+                      <Maximize2 className="size-3.5" />
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
             {videos.length > 0 && (
               <div className="mt-12 grid gap-6 lg:grid-cols-2">
                 {videos.map((video, index) => (
@@ -218,6 +230,9 @@ export default function PlayerMedia({
                   </div>
                 ))}
               </div>
+            )}
+            {images.length === 0 && videos.length === 0 && (
+              <EmptyInline icon={Camera} text="No media available." />
             )}
           </section>
         )}
@@ -305,7 +320,11 @@ export default function PlayerMedia({
             {canViewDetails ? (
               <div className="mt-8 grid gap-5 border-t border-divider pt-6 sm:grid-cols-2">
                 <Info icon={Mail} label="Email" value={player.email} />
-                <Info icon={Phone} label="Phone" value={player.phone} />
+                <Info
+                  icon={Phone}
+                  label="Phone"
+                  value={formatPhoneNumber(player.phone, player.phoneCountryCode)}
+                />
                 <Info icon={MapPin} label="Country" value={player.country} />
                 <Info
                   icon={Calendar}
@@ -333,7 +352,12 @@ export default function PlayerMedia({
               {[
                 ["Contract status", player.contractStatus || "Unavailable"],
                 ["Available from", player.availableFrom || "Unavailable"],
-                ["Preferred leagues", player.preferredLeagues || "Unavailable"],
+                [
+                  "Preferred leagues",
+                  Array.isArray(player.preferredLeagues)
+                    ? player.preferredLeagues.join(", ") || "Unavailable"
+                    : player.preferredLeagues || "Unavailable",
+                ],
                 ["Preferred foot", player.foot || "Unavailable"],
               ].map(([label, value]) => (
                 <div key={label} className="border-b border-divider pb-3">

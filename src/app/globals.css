@@ -35,7 +35,8 @@
   --color-primary-card: #ffffff;
   --color-primary-text: #0b1220;
   --color-primary-text-inverse: #ffffff;
-  --color-primary-muted: #9ca3af;
+  --color-light-primary-muted: #9ca3af;
+  --color-primary-muted: #37393b;
   --color-secondary-bg: #172c53; /* Secondary background color for sections like CTA sections within a page */
   --color-secondary-bg-alt: #eef2f7;
   /* Brand actions */

@@ -9,13 +9,17 @@ import { getDictionary } from "@/lib/dictionaries";
 import { formatTimeAgo } from "@/utils/dateHelper";
 import {
   ArrowUpRight,
+  FileSignature,
   Globe2Icon,
   Play,
   Search,
+  Signature,
   TrendingUp,
   UserRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { FaFootball } from "react-icons/fa6";
+import { FaFootballBall } from "react-icons/fa";
 
 export async function generateMetadata({ params }) {
   const { lang } = await params;
@@ -209,7 +213,7 @@ export default async function HomePage({ params }) {
 
           <div className="flex items-center gap-3 px-5 py-3 sm:px-6">
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-primary-accent/40 text-primary-accent">
-              <Search className="h-3.5 w-3.5" />
+              <FileSignature className="h-3.5 w-3.5" />
             </span>
 
             <span className="text-[9px] font-medium tracking-[0.12em] text-white/60 uppercase">
@@ -273,6 +277,7 @@ export default async function HomePage({ params }) {
                 className="group overflow-hidden rounded-lg border border-divider bg-primary-card"
               >
                 <div className="relative">
+                  <Link href={`/${lang}/players/${player.id}`} className="relative">
                   <Image
                     src={
                       player.headshotUrl ||
@@ -291,6 +296,8 @@ export default async function HomePage({ params }) {
                   <span className="absolute right-4 bottom-4 flex h-9 w-9 items-center justify-center rounded-full bg-primary-card text-primary-text transition-transform group-hover:-translate-y-1">
                     <ArrowUpRight className="h-4 w-4" />
                   </span>
+                  </Link>
+                  
                 </div>
 
                 <div className="p-4">
@@ -390,7 +397,7 @@ export default async function HomePage({ params }) {
                       </p>
                     </div>
                   </div>
-                  <ArrowUpRight className="mt-1 h-4 w-4 text-primary-muted" />
+                  {/* <ArrowUpRight className="mt-1 h-4 w-4 text-primary-muted" /> */}
                 </div>
               ))}
             </div>

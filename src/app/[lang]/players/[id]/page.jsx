@@ -40,6 +40,7 @@ export default async function PlayerPage({ params }) {
     lastName: player.lastName,
     position: player.position,
     country: player.country,
+    headshotUrl: player.headshotUrl,
     imageUrl: player.imageUrl || [],
     videoPrimary: player.videoPrimary,
     videoAdditional: player.videoAdditional || [],

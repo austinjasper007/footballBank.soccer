@@ -29,6 +29,8 @@ import { countries } from "@/data/countries&code";
 import { footballLeagues } from "@/data/footballLeagues";
 import { MultiSelect } from "@/components/ui/MultiSelect";
 import { PhoneField } from "@/components/ui/PhoneField";
+import { Trash2 } from "lucide-react";
+import { deleteFirebaseStorageFile } from "@/lib/firebaseStorageCleanup";
 const normalizeLeagues = (value) => {
   if (Array.isArray(value)) return value;
   if (typeof value === "string") {
@@ -43,6 +45,7 @@ const normalizeLeagues = (value) => {
 export function PlayerDialog({ open, onOpenChange, player, onSave }) {
   const { toast } = useToast();
   const [uploadProgress, setUploadProgress] = useState({});
+  const [pendingStorageDeletes, setPendingStorageDeletes] = useState([]);
   const uploading = Object.values(uploadProgress).some((p) => p < 100);
 
   const [formData, setFormData] = useState({
@@ -62,7 +65,11 @@ export function PlayerDialog({ open, onOpenChange, player, onSave }) {
     cvUrl: player?.cvUrl || "",
     headshotUrl: player?.headshotUrl || "",
     // Legacy multi-photo gallery state retained for existing player records.
-    imageUrl: player?.imageUrl || [],
+    imageUrl: Array.isArray(player?.imageUrl)
+      ? player.imageUrl
+      : player?.imageUrl
+        ? [player.imageUrl]
+        : [],
     description: player?.description || "",
     videoPrimary: player?.videoPrimary || "",
     videoAdditional: player?.videoAdditional || [],
@@ -82,6 +89,7 @@ export function PlayerDialog({ open, onOpenChange, player, onSave }) {
   });
 
   useEffect(() => {
+    setPendingStorageDeletes([]);
     setFormData({
       ...player,
       ...formDataDefaults(player),
@@ -104,7 +112,11 @@ export function PlayerDialog({ open, onOpenChange, player, onSave }) {
     cvUrl: player?.cvUrl || "",
     headshotUrl: player?.headshotUrl || "",
     // Legacy multi-photo gallery state retained for existing player records.
-    imageUrl: player?.imageUrl || [],
+    imageUrl: Array.isArray(player?.imageUrl)
+      ? player.imageUrl
+      : player?.imageUrl
+        ? [player.imageUrl]
+        : [],
     description: player?.description || "",
     videoPrimary: player?.videoPrimary || "",
     videoAdditional: player?.videoAdditional || [],
@@ -147,10 +159,23 @@ export function PlayerDialog({ open, onOpenChange, player, onSave }) {
       const result = player?.id
         ? await updatePlayer(player.id, formData)
         : await createPlayer(formData);
+      if (!result?.id) throw new Error("Failed to save player");
+      const deletionResults = await Promise.allSettled(
+        [...new Set(pendingStorageDeletes)].map(deleteFirebaseStorageFile),
+      );
+      const failedDeletes = deletionResults.filter(
+        (deletion) => deletion.status === "rejected",
+      ).length;
       const savedId = player?.id || result?.id;
       onSave({ ...formData, id: savedId });
       onOpenChange(false);
-      toast({ title: "Success", description: "Player saved successfully" });
+      toast({
+        title: failedDeletes ? "Player saved with a warning" : "Success",
+        description: failedDeletes
+          ? `Player saved, but ${failedDeletes} media file(s) could not be deleted from storage.`
+          : "Player saved successfully",
+        variant: failedDeletes ? "destructive" : "default",
+      });
     } catch (err) {
       toast({
         title: "Error",
@@ -226,6 +251,42 @@ export function PlayerDialog({ open, onOpenChange, player, onSave }) {
         );
       });
   };
+
+  const handleMediaRemove = (url) => {
+    setPendingStorageDeletes((previous) =>
+      previous.includes(url) ? previous : [...previous, url],
+    );
+    setFormData((previous) => ({
+      ...previous,
+      headshotUrl: previous.headshotUrl === url ? "" : previous.headshotUrl,
+      imageUrl: (Array.isArray(previous.imageUrl) ? previous.imageUrl : []).filter(
+        (image) => image !== url,
+      ),
+      videoPrimary: previous.videoPrimary === url ? "" : previous.videoPrimary,
+      videoAdditional: (previous.videoAdditional || []).filter(
+        (video) => video !== url,
+      ),
+    }));
+  };
+
+  const currentImages = [
+    ...new Set(
+      [
+        formData.headshotUrl,
+        ...(Array.isArray(formData.imageUrl) ? formData.imageUrl : []),
+      ].filter(Boolean),
+    ),
+  ];
+  const currentVideos = [
+    ...new Set(
+      [
+        formData.videoPrimary,
+        ...(Array.isArray(formData.videoAdditional)
+          ? formData.videoAdditional
+          : []),
+      ].filter(Boolean),
+    ),
+  ];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -482,6 +543,57 @@ export function PlayerDialog({ open, onOpenChange, player, onSave }) {
 
         {/* Upload Sections */}
         <div className="mt-6 space-y-4 md:mt-8">
+          {(currentImages.length > 0 || currentVideos.length > 0) && (
+            <div className="space-y-3">
+              <Label>Current media</Label>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {currentImages.map((image) => (
+                  <div
+                    key={image}
+                    className="relative aspect-video overflow-hidden border border-divider bg-primary-surface"
+                  >
+                    <img
+                      src={image}
+                      alt="Player media"
+                      className="h-full w-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleMediaRemove(image)}
+                      aria-label="Delete player image"
+                      title="Delete image"
+                      className="absolute top-2 right-2 inline-flex size-9 items-center justify-center bg-white/95 text-accent-red shadow hover:bg-white"
+                    >
+                      <Trash2 className="size-4" />
+                    </button>
+                  </div>
+                ))}
+                {currentVideos.map((video) => (
+                  <div
+                    key={video}
+                    className="relative overflow-hidden border border-divider bg-primary-surface"
+                  >
+                    <video
+                      src={video}
+                      controls
+                      preload="metadata"
+                      className="aspect-video w-full bg-black"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleMediaRemove(video)}
+                      aria-label="Delete player video"
+                      title="Delete video"
+                      className="absolute top-2 right-2 inline-flex size-9 items-center justify-center bg-white/95 text-accent-red shadow hover:bg-white"
+                    >
+                      <Trash2 className="size-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <Label>Upload Player Headshot</Label>
           <Input
             type="file"

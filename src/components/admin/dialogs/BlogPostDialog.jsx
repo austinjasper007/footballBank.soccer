@@ -19,13 +19,19 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { Trash2 } from "lucide-react";
 import { createPost, updatePost } from "@/actions/adminActions";
 import { uploadFileWithProgress } from "@/lib/uploadWithProgress";
+import { deleteFirebaseStorageFile } from "@/lib/firebaseStorageCleanup";
+
+const normalizeImages = (value) =>
+  (Array.isArray(value) ? value : value ? [value] : []).filter(Boolean);
 
 export function BlogPostDialog({ open, onOpenChange, post, onSave }) {
   const { toast } = useToast();
 
   const [uploadProgress, setUploadProgress] = useState(null);
+  const [pendingStorageDeletes, setPendingStorageDeletes] = useState([]);
 
   const [formData, setFormData] = useState({
     ...post,
@@ -34,7 +40,7 @@ export function BlogPostDialog({ open, onOpenChange, post, onSave }) {
     status: post?.status || "Draft",
     summary: post?.summary || "",
     content: post?.content || "",
-    imageUrl: post?.imageUrl || "",
+    imageUrl: normalizeImages(post?.imageUrl),
     tags: post?.tags || [],
     featured: post?.featured || false,
     views: post?.views || 0,
@@ -44,6 +50,7 @@ export function BlogPostDialog({ open, onOpenChange, post, onSave }) {
 
   // Add this effect to update formData and tagsInput when post or dialog opens
   useEffect(() => {
+    setPendingStorageDeletes([]);
     setFormData({
       ...post,
       title: post?.title || "",
@@ -51,7 +58,7 @@ export function BlogPostDialog({ open, onOpenChange, post, onSave }) {
       status: post?.status || "Draft",
       summary: post?.summary || "",
       content: post?.content || "",
-      imageUrl: post?.imageUrl || "",
+      imageUrl: normalizeImages(post?.imageUrl),
       tags: post?.tags || [],
       featured: post?.featured || false,
       views: post?.views || 0,
@@ -66,8 +73,7 @@ export function BlogPostDialog({ open, onOpenChange, post, onSave }) {
       !formData.content ||
       !tagsInput ||
       !formData.status ||
-      !formData.author ||
-      !formData.imageUrl
+      !formData.author
     ) {
       toast({
         title: "Missing Fields",
@@ -86,18 +92,30 @@ export function BlogPostDialog({ open, onOpenChange, post, onSave }) {
 
     try {
       if (post?.id) {
-        await updatePost(post.id, finalData);
+        const updatedPost = await updatePost(post.id, finalData);
+        if (!updatedPost?.id) throw new Error("Failed to update post");
       } else {
-        await createPost(finalData);
+        const createdPost = await createPost(finalData);
+        if (!createdPost?.id) throw new Error("Failed to create post");
       }
+
+      const deletionResults = await Promise.allSettled(
+        [...new Set(pendingStorageDeletes)].map(deleteFirebaseStorageFile),
+      );
+      const failedDeletes = deletionResults.filter(
+        (deletion) => deletion.status === "rejected",
+      ).length;
 
       onSave({ ...finalData, id: post?.id });
 
       toast({
-        title: "Success",
-        description: post?.id
-          ? "Post updated successfully."
-          : "New post created.",
+        title: failedDeletes ? "Post saved with a warning" : "Success",
+        description: failedDeletes
+          ? `Post saved, but ${failedDeletes} media file(s) could not be deleted from storage.`
+          : post?.id
+            ? "Post updated successfully."
+            : "New post created.",
+        variant: failedDeletes ? "destructive" : "default",
       });
 
       onOpenChange(false);
@@ -108,6 +126,16 @@ export function BlogPostDialog({ open, onOpenChange, post, onSave }) {
         variant: "default",
       });
     }
+  };
+
+  const handleImageRemove = (image) => {
+    setPendingStorageDeletes((previous) =>
+      previous.includes(image) ? previous : [...previous, image],
+    );
+    setFormData((previous) => ({
+      ...previous,
+      imageUrl: previous.imageUrl.filter((url) => url !== image),
+    }));
   };
 
   return (
@@ -171,7 +199,7 @@ export function BlogPostDialog({ open, onOpenChange, post, onSave }) {
             </div>
 
             <div>
-              <Label htmlFor="image">Featured Image *</Label>
+              <Label htmlFor="image">Images</Label>
               <Input
                 id="image"
                 type="file"
@@ -183,7 +211,10 @@ export function BlogPostDialog({ open, onOpenChange, post, onSave }) {
                   const url = await uploadFileWithProgress(path, file, (progress) => {
                     setUploadProgress(progress);
                   });
-                  setFormData((prev) => ({ ...prev, imageUrl: url }));
+                  setFormData((prev) => ({
+                    ...prev,
+                    imageUrl: [...prev.imageUrl, url],
+                  }));
                   setUploadProgress(null);
                 }}
               />
@@ -195,12 +226,30 @@ export function BlogPostDialog({ open, onOpenChange, post, onSave }) {
                   />
                 </div>
               )}
-              {formData.imageUrl && (
-                <img
-                  src={formData.imageUrl}
-                  alt="Preview"
-                  className="mt-2 rounded w-full max-h-48 object-cover"
-                />
+              {formData.imageUrl.length > 0 && (
+                <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {formData.imageUrl.map((image, index) => (
+                    <div
+                      key={`${image}-${index}`}
+                      className="relative aspect-video overflow-hidden border border-divider bg-primary-surface"
+                    >
+                      <img
+                        src={image}
+                        alt={`Post image ${index + 1}`}
+                        className="h-full w-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleImageRemove(image)}
+                        aria-label={`Delete post image ${index + 1}`}
+                        title="Delete image"
+                        className="absolute top-2 right-2 inline-flex size-9 items-center justify-center bg-white/95 text-accent-red shadow hover:bg-white"
+                      >
+                        <Trash2 className="size-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           </div>

@@ -15,10 +15,12 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { Trash2 } from "lucide-react";
 import AdvancedTextEditor from "@/components/admin/AdvancedTextEditor";
 import { createPost, updatePost, getAllPosts } from "@/actions/adminActions";
 import { useAuth } from "@/context/NewAuthContext";
 import { uploadFileWithProgress } from "@/lib/uploadWithProgress";
+import { deleteFirebaseStorageFile } from "@/lib/firebaseStorageCleanup";
 
 export default function EditorEditor({ editingPost, onSave, onCancel }) {
   const { toast } = useToast();
@@ -26,6 +28,7 @@ export default function EditorEditor({ editingPost, onSave, onCancel }) {
   const [isSaving, setIsSaving] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [pendingStorageDeletes, setPendingStorageDeletes] = useState([]);
   const [postData, setPostData] = useState({
     title: "",
     summary: "",
@@ -39,6 +42,7 @@ export default function EditorEditor({ editingPost, onSave, onCancel }) {
   });
 
   useEffect(() => {
+    setPendingStorageDeletes([]);
     if (editingPost) {
       setPostData({
         id: editingPost.id,
@@ -88,18 +92,28 @@ export default function EditorEditor({ editingPost, onSave, onCancel }) {
     setIsSaving(true);
     try {
       if (postData.id) {
-        await updatePost(postData.id, postData);
-        toast({
-          title: "Success",
-          description: "Post updated successfully.",
-        });
+        const updatedPost = await updatePost(postData.id, postData);
+        if (!updatedPost?.id) throw new Error("Failed to update post");
       } else {
-        await createPost(postData);
-        toast({
-          title: "Success",
-          description: "New post created successfully.",
-        });
+        const createdPost = await createPost(postData);
+        if (!createdPost?.id) throw new Error("Failed to create post");
       }
+
+      const deletionResults = await Promise.allSettled(
+        [...new Set(pendingStorageDeletes)].map(deleteFirebaseStorageFile),
+      );
+      const failedDeletes = deletionResults.filter(
+        (deletion) => deletion.status === "rejected",
+      ).length;
+      toast({
+        title: failedDeletes ? "Post saved with a warning" : "Success",
+        description: failedDeletes
+          ? `Post saved, but ${failedDeletes} media file(s) could not be deleted from storage.`
+          : postData.id
+            ? "Post updated successfully."
+            : "New post created successfully.",
+        variant: failedDeletes ? "destructive" : "default",
+      });
 
       if (onSave) {
         onSave();
@@ -181,10 +195,15 @@ export default function EditorEditor({ editingPost, onSave, onCancel }) {
   };
 
   const handleImageRemove = (imageToRemove) => {
-    setPostData({
-      ...postData,
-      imageUrl: postData.imageUrl.filter((img) => img !== imageToRemove),
-    });
+    setPendingStorageDeletes((previous) =>
+      previous.includes(imageToRemove)
+        ? previous
+        : [...previous, imageToRemove],
+    );
+    setPostData((previous) => ({
+      ...previous,
+      imageUrl: previous.imageUrl.filter((image) => image !== imageToRemove),
+    }));
   };
 
   return (
@@ -334,12 +353,12 @@ export default function EditorEditor({ editingPost, onSave, onCancel }) {
                   {postData.imageUrl.map((image, index) => (
                     <div
                       key={index}
-                      className="flex items-center gap-2 border-b border-divider/70 py-2"
+                      className="flex items-center gap-3 border-b border-divider/70 py-3"
                     >
                       <img
                         src={image}
                         alt={`Image ${index + 1}`}
-                        className="size-12 object-cover"
+                        className="aspect-video w-32 shrink-0 border border-divider object-cover"
                         onError={(e) => {
                           e.target.style.display = "none";
                         }}
@@ -350,11 +369,13 @@ export default function EditorEditor({ editingPost, onSave, onCancel }) {
                       <Button
                         type="button"
                         variant="ghost"
-                        size="sm"
+                        size="icon"
                         onClick={() => handleImageRemove(image)}
-                        className="text-accent-red hover:border-accent-red hover:bg-accent-red/10 hover:text-accent-red"
+                        aria-label={`Delete post image ${index + 1}`}
+                        title="Delete image"
+                        className="shrink-0 text-accent-red hover:border-accent-red hover:bg-accent-red/10 hover:text-accent-red"
                       >
-                        Remove
+                        <Trash2 className="size-4" />
                       </Button>
                     </div>
                   ))}

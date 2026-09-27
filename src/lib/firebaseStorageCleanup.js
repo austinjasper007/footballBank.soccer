@@ -8,6 +8,16 @@ async function deleteStorageFolder(folderRef) {
   await Promise.all(prefixes.map((prefix) => deleteStorageFolder(prefix)));
 }
 
+export async function deleteFirebaseStorageFile(downloadUrl) {
+  if (!downloadUrl) return;
+
+  try {
+    await deleteObject(ref(storage, downloadUrl));
+  } catch (error) {
+    if (error.code !== "storage/object-not-found") throw error;
+  }
+}
+
 export async function deletePlayerMedia(email) {
   const normalizedEmail = email?.trim().toLowerCase();
 

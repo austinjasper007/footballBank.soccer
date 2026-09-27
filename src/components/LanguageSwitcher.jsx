@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { locales, localeNames, localeFlags } from "@/lib/client-dictionaries";
+import { locales, localeNames } from "@/lib/client-dictionaries";
 
 export default function LanguageSwitcher({ currentLang }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -50,8 +50,7 @@ export default function LanguageSwitcher({ currentLang }) {
         className="flex items-center space-x-1 sm:space-x-2 px-1 py-0 sm:px-2 sm:py-1.25 rounded-md border border-gray-300 bg-white hover:bg-gray-50 transition-colors"
         aria-label="Select language"
       >
-        <span className="text-lg">{localeFlags[currentLang]}</span>
-        <span className="hidden sm:block text-sm font-medium text-gray-700">
+        <span className="text-sm font-medium text-gray-700">
           {currentLang.toUpperCase()}
         </span>
         <svg
@@ -72,19 +71,18 @@ export default function LanguageSwitcher({ currentLang }) {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-50">
+        <div className="absolute right-0 mt-2 w-30 bg-white border border-gray-200 rounded-md shadow-lg z-50">
           <div className="py-1">
             {locales.map((locale) => (
               <button
                 key={locale}
                 onClick={() => switchLanguage(locale)}
-                className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center space-x-3 ${
+                className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center ${
                   locale === currentLang
                     ? "bg-gray-50 text-accent-red font-medium"
                     : "text-gray-700"
                 }`}
               >
-                <span className="text-lg">{localeFlags[locale]}</span>
                 <span>{localeNames[locale]}</span>
                 {locale === currentLang && (
                   <svg

@@ -1,7 +1,7 @@
 "use server";
 
 import dbConnect from "@/lib/mongodb";
-import { Post, Player } from "@/lib/schemas";
+import { Post, Player, HomepageHero } from "@/lib/schemas";
 
 // 🔧 Helper: normalize MongoDB docs to plain serializable objects
 const normalize = (doc) => {
@@ -116,6 +116,33 @@ export async function getFeaturedPlayers() {
   } catch (error) {
     console.error("Error fetching featured players:", error);
     return [];
+  }
+}
+
+export async function getHomepageHeroConfig() {
+  await dbConnect();
+  try {
+    const config = await HomepageHero.findOne({ key: "home" }).lean();
+    if (!config) return null;
+
+    const player = await Player.findById(config.playerId)
+      .select("firstName lastName position country")
+      .lean();
+    if (!player) return null;
+
+    return {
+      playerId: String(player._id),
+      imageUrl: config.imageUrl,
+      player: {
+        firstName: player.firstName,
+        lastName: player.lastName,
+        position: player.position,
+        country: player.country,
+      },
+    };
+  } catch (error) {
+    console.error("Error fetching homepage hero configuration:", error);
+    return null;
   }
 }
 

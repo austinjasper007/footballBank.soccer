@@ -4,10 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import HomepageHeroSettings from "./HomepageHeroSettings";
 
 export function SettingsView() {
   return (
     <div className="space-y-6 max-w-4xl">
+      <HomepageHeroSettings />
+
       {/* General Settings */}
       <Card className="border-0 shadow-sm">
         <CardHeader>

@@ -34,6 +34,8 @@ export default function PlayerMedia({
 }) {
   const [activeSection, setActiveSection] = useState(initialSection || "overview");
   const [selectedImage, setSelectedImage] = useState(null);
+  const [isDownloadingResume, setIsDownloadingResume] = useState(false);
+  const [resumeDownloadError, setResumeDownloadError] = useState("");
   useBodyScrollLock(selectedImage !== null);
   const images = [
     ...new Set(
@@ -49,6 +51,47 @@ export default function PlayerMedia({
     ...(player.videoAdditional || []),
   ].filter(Boolean);
   const fullName = `${player.firstName} ${player.lastName}`;
+
+  const handleResumeDownload = async () => {
+    setIsDownloadingResume(true);
+    setResumeDownloadError("");
+
+    try {
+      const response = await fetch(
+        `/api/players/${encodeURIComponent(player.id)}/resume`,
+      );
+      const contentType = response.headers
+        .get("content-type")
+        ?.split(";")[0];
+
+      if (!response.ok || contentType !== "application/pdf") {
+        throw new Error(
+          response.status === 401
+            ? "Please sign in again to download this resume."
+            : response.status === 403
+              ? "You no longer have approval to download this resume."
+              : "The resume could not be downloaded. Please try again.",
+        );
+      }
+
+      const objectUrl = URL.createObjectURL(await response.blob());
+      const downloadLink = document.createElement("a");
+      downloadLink.href = objectUrl;
+      downloadLink.download = `${player.firstName}-${player.lastName}-resume.pdf`
+        .replace(/[^a-z0-9.-]+/gi, "-")
+        .toLowerCase();
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      downloadLink.remove();
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+    } catch (error) {
+      setResumeDownloadError(
+        error.message || "The resume could not be downloaded. Please try again.",
+      );
+    } finally {
+      setIsDownloadingResume(false);
+    }
+  };
 
   return (
     <main
@@ -378,12 +421,20 @@ export default function PlayerMedia({
               ))}
             </dl>
             {canDownloadResume && (
-              <a
-                href={`/api/players/${player.id}/resume`}
+              <button
+                type="button"
+                onClick={handleResumeDownload}
+                disabled={isDownloadingResume}
                 className="mt-8 inline-flex items-center gap-3 bg-primary-action px-5 py-3 text-sm font-semibold text-primary-text-inverse hover:bg-primary-action-hover"
               >
-                <Download className="size-4" /> Download professional resume
-              </a>
+                <Download className="size-4" />
+                {isDownloadingResume ? "Preparing resume..." : "Download professional resume"}
+              </button>
+            )}
+            {resumeDownloadError && (
+              <p className="mt-3 text-sm text-destructive" role="alert">
+                {resumeDownloadError}
+              </p>
             )}
           </section>
         )}

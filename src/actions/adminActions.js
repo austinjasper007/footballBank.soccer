@@ -1,11 +1,12 @@
 "use server";
 
-import { User, Post, Player, Message, Submission, Agent } from "@/lib/schemas";
+import { User, Post, Player, Message, Submission, Agent, HomepageHero } from "@/lib/schemas";
 import { revalidatePath } from "next/cache";
 import dbConnect from "@/lib/mongodb";
 import mongoose from "mongoose";
 import { sendPlayerSubmissionDecisionEmail, sendWelcomeEmail } from "@/lib/email";
 import { deletePlayerMedia } from "@/lib/firebaseStorageCleanup";
+import { requireRole } from "@/lib/oauth";
 
 // 🔧 Helper: safely convert any Mongoose doc(s) to plain JSON and convert _id to id
 const toPlain = (data) => {
@@ -491,5 +492,64 @@ export async function updateAgentInfo(formData) {
   } catch (err) {
     console.error("Error updating agent info:", err);
     return err;
+  }
+}
+
+export async function saveHomepageHeroSettings({ playerId, imageUrl }) {
+  await requireRole("admin");
+
+  if (!mongoose.isValidObjectId(playerId)) {
+    throw new Error("Select a valid player for the homepage hero");
+  }
+  if (
+    typeof imageUrl !== "string" ||
+    !/^https:\/\/(firebasestorage\.googleapis\.com|storage\.googleapis\.com)\//.test(imageUrl)
+  ) {
+    throw new Error("Upload a valid hero image before saving");
+  }
+
+  await dbConnect();
+  const [player, existing] = await Promise.all([
+    Player.findById(playerId).select("_id").lean(),
+    HomepageHero.findOne({ key: "home" }).select("imageUrl").lean(),
+  ]);
+  if (!player) throw new Error("Selected player was not found");
+
+  const saved = await HomepageHero.findOneAndUpdate(
+    { key: "home" },
+    {
+      $set: { playerId: player._id, imageUrl, updatedAt: new Date() },
+      $setOnInsert: { key: "home" },
+    },
+    { new: true, upsert: true, runValidators: true },
+  );
+
+  revalidatePath("/en");
+  revalidatePath("/es");
+  return {
+    playerId: String(saved.playerId),
+    imageUrl: saved.imageUrl,
+    previousImageUrl: existing?.imageUrl || "",
+  };
+}
+
+export async function getHomepageHeroPlayers() {
+  await requireRole("admin");
+  await dbConnect();
+  try {
+    const players = await Player.find({})
+      .select("firstName lastName position dob")
+      .lean()
+      .sort({ lastName: 1, firstName: 1 });
+    return players.map((player) => ({
+      id: String(player._id),
+      firstName: player.firstName,
+      lastName: player.lastName,
+      position: player.position,
+      dob: player.dob,
+    }));
+  } catch (error) {
+    console.error("Error fetching players for homepage hero:", error);
+    return [];
   }
 }

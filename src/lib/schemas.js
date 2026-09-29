@@ -246,6 +246,13 @@ const agentSchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now }
 });
 
+const homepageHeroSchema = new mongoose.Schema({
+  key: { type: String, default: "home", unique: true },
+  playerId: { type: mongoose.Schema.Types.ObjectId, ref: "Player", required: true },
+  imageUrl: { type: String, required: true },
+  updatedAt: { type: Date, default: Date.now },
+});
+
 // Create models with proper error handling - use existing collection names from Prisma
 // Guard against stale cached models: Next.js hot-reload can keep a previously
 // compiled schema alive in mongoose.models, silently dropping newly added fields
@@ -272,3 +279,4 @@ export const Submission = defineModel('Submission', submissionSchema);
 export const ResumeRequest = defineModel('ResumeRequest', resumeRequestSchema);
 export const PlayerProfileView = defineModel('PlayerProfileView', playerProfileViewSchema);
 export const Agent = defineModel('Agent', agentSchema);
+export const HomepageHero = defineModel('HomepageHero', homepageHeroSchema);

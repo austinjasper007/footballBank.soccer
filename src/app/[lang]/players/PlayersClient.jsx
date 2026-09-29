@@ -39,10 +39,20 @@ export default function PlayersClient({ lang, dict }) {
   const normalizeStatus = (value) => {
     if (!value) return "available";
     const normalized = value.toLowerCase();
-    if (normalized.includes("trial") || normalized.includes("trialist")) return "trial";
+    if (normalized.includes("trial") || normalized.includes("trialist"))
+      return "trial";
     if (normalized.includes("loan")) return "loan";
-    if (normalized.includes("unavailable") || normalized.includes("not available")) return "unavailable";
-    if (normalized.includes("free") || normalized.includes("available") || normalized.includes("open")) return "available";
+    if (
+      normalized.includes("unavailable") ||
+      normalized.includes("not available")
+    )
+      return "unavailable";
+    if (
+      normalized.includes("free") ||
+      normalized.includes("available") ||
+      normalized.includes("open")
+    )
+      return "available";
     if (normalized.includes("contract")) return "contracted";
     return normalized;
   };
@@ -81,19 +91,29 @@ export default function PlayersClient({ lang, dict }) {
       ? (() => {
           if (age === null) return false;
           switch (selectedAge) {
-            case "u18": return age < 18;
-            case "18-21": return age >= 18 && age <= 21;
-            case "22-25": return age >= 22 && age <= 25;
-            case "26-30": return age >= 26 && age <= 30;
-            case "31plus": return age > 30;
-            default: return true;
+            case "u18":
+              return age < 18;
+            case "18-21":
+              return age >= 18 && age <= 21;
+            case "22-25":
+              return age >= 22 && age <= 25;
+            case "26-30":
+              return age >= 26 && age <= 30;
+            case "31plus":
+              return age > 30;
+            default:
+              return true;
           }
         })()
       : true;
-    const matchesStatus = selectedStatus
-      ? status === selectedStatus
-      : true;
-    return matchesSearch && matchesCountry && matchesPosition && matchesAge && matchesStatus;
+    const matchesStatus = selectedStatus ? status === selectedStatus : true;
+    return (
+      matchesSearch &&
+      matchesCountry &&
+      matchesPosition &&
+      matchesAge &&
+      matchesStatus
+    );
   });
 
   const totalPages = Math.ceil(filteredPlayers.length / perPage);
@@ -225,20 +245,26 @@ export default function PlayersClient({ lang, dict }) {
                           className="group overflow-hidden rounded-xl border border-divider bg-white shadow-sm transition-shadow hover:shadow-md"
                         >
                           <div className="relative">
-                            <Image
-                              src={player.headshotUrl || player.imageUrl?.[0] || "/logo/logo3.svg"}
-                              alt={fullName}
-                              width={600}
-                              height={800}
-                              loading="lazy"
-                              className="h-52 w-full rounded-t-xl bg-slate-100 object-cover sm:h-56 lg:h-60"
-                            />
-                            <span className="absolute top-4 left-4 rounded-sm bg-primary-navy/90 px-2.5 py-1 text-[0.6rem] tracking-[0.18em] text-primary-text-inverse uppercase">
-                              {player.position}
-                            </span>
-                            <span className="absolute right-4 bottom-4 flex h-9 w-9 items-center justify-center rounded-full bg-white text-primary-text shadow-sm transition-transform group-hover:-translate-y-1">
-                              <ArrowUpRight className="h-4 w-4" />
-                            </span>
+                            <Link href={`/${lang}/players/${player.id}`}>
+                              <Image
+                                src={
+                                  player.headshotUrl ||
+                                  player.imageUrl?.[0] ||
+                                  "/logo/logo3.svg"
+                                }
+                                alt={fullName}
+                                width={600}
+                                height={800}
+                                loading="lazy"
+                                className="h-52 w-full rounded-t-xl bg-slate-100 object-cover sm:h-56 lg:h-60"
+                              />
+                              <span className="absolute top-4 left-4 rounded-sm bg-primary-navy/90 px-2.5 py-1 text-[0.6rem] tracking-[0.18em] text-primary-text-inverse uppercase">
+                                {player.position}
+                              </span>
+                              <span className="absolute right-4 bottom-4 flex h-9 w-9 items-center justify-center rounded-full bg-white text-primary-text shadow-sm transition-transform group-hover:-translate-y-1">
+                                <ArrowUpRight className="h-4 w-4" />
+                              </span>
+                            </Link>
                           </div>
 
                           <div className="px-5 py-4">
@@ -347,7 +373,6 @@ export default function PlayersClient({ lang, dict }) {
             }
           `}</style>
         </div>
-
       </main>
     </>
   );

@@ -1,7 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import "aos/dist/aos.css";
-import { getFeaturedPlayers, getFeaturedPosts } from "@/actions/publicActions";
+import {
+  getFeaturedPlayers,
+  getFeaturedPosts,
+  getHomepageHeroConfig,
+} from "@/actions/publicActions";
 import { getAgentInfo } from "@/actions/adminActions";
 import { getAuthUser } from "@/lib/oauth";
 import { generateMetadata as generateSEOMetadata } from "@/lib/seo";
@@ -12,14 +16,10 @@ import {
   FileSignature,
   Globe2Icon,
   Play,
-  Search,
-  Signature,
   TrendingUp,
   UserRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { FaFootball } from "react-icons/fa6";
-import { FaFootballBall } from "react-icons/fa";
 
 export async function generateMetadata({ params }) {
   const { lang } = await params;
@@ -95,15 +95,24 @@ export default async function HomePage({ params }) {
   } catch (error) {
     console.error("Error getting user:", error);
   }
-  const agentInfo = await getAgentInfo();
-  const featuredPosts = await getFeaturedPosts();
-  const featuredPlayers = await getFeaturedPlayers();
-
-  const playerOfTheWeek = featuredPlayers.find((p) => p.playerOfTheWeek);
-  const today = new Date();
-  const age = playerOfTheWeek?.dob
-    ? today.getFullYear() - new Date(playerOfTheWeek.dob).getFullYear()
-    : "N/A";
+  const [agentInfo, featuredPosts, featuredPlayers, homepageHero] =
+    await Promise.all([
+      getAgentInfo(),
+      getFeaturedPosts(),
+      getFeaturedPlayers(),
+      getHomepageHeroConfig(),
+    ]);
+  const heroPlayer =
+    homepageHero?.player ||
+    featuredPlayers.find((player) => player.playerOfTheWeek);
+  const heroImageUrl =
+    homepageHero?.imageUrl ||
+    heroPlayer?.headshotUrl ||
+    heroPlayer?.imageUrl?.[0];
+  const heroPlayerNameClass =
+    (heroPlayer?.firstName?.trim().length || 0) > 12
+      ? "text-2xl md:text-sm lg:text-base"
+      : "text-3xl md:text-sm lg:text-base";
 
   return (
     <div className="min-h-screen bg-primary-bg">
@@ -111,16 +120,16 @@ export default async function HomePage({ params }) {
 
       <section className="relative overflow-hidden bg-navy">
         <img
-          src="/heroPhotos/LLLL.png"
+          src="/heroPhotos/Hero-section-bg-darkened.jpg"
           alt="Footballer walking on the pitch"
           width={1600}
           height={1008}
-          className="absolute inset-0 h-full w-full md:object-cover opacity-70"
+          className="absolute inset-0 h-full w-full object-cover"
         />
-        <div className="absolute inset-0 bg-linear-to-r from-primary-navy via-primary-navy/85 to-primary-navy/20" />
+        <div className="absolute inset-0 bg-linear-to-r from-primary-navy via-primary-navy/30 to-transparent" />
 
-        <div className="relative mx-auto flex max-w-8xl flex-col items-stretch gap-4 px-4 py-4 md:flex-row">
-          <section className="flex min-w-0 flex-col justify-center px-1 py-6 sm:px-2 w-full md:w-[48%] md:pl-16 md:py-12 lg:w-[46%]">
+        <div className="relative mx-auto grid max-w-8xl grid-cols-1 items-center gap-0 px-4 py-5 sm:px-6 md:grid-cols-[1.02fr_0.98fr] md:py-4 md:pl-10 md:pr-1">
+          <section className="flex min-w-0 flex-col justify-center px-1 py-6 sm:px-2 md:py-12 md:pl-6 lg:pl-10">
             <p className="eyebrow">
               {home?.heroEyebrow ||
                 "Representation · Recruitment · Opportunity"}
@@ -170,32 +179,56 @@ export default async function HomePage({ params }) {
             </a>
           </section>
 
-          {/* PLAYER OF THE WEEK */}
-          <section className=" relative hidden w-full items-center justify-center md:flex md:w-[52%] lg:w-[54%]">
-            <div className=" h-full w-full overflow-hidden">
+          <div className="relative min-h-97.5 w-full sm:min-h-115 md:min-h-140 lg:min-h-full hidden md:block">
+          
+            {heroImageUrl ? (
               <Image
-                src="/heroPhotos/LLLL.png"
-                alt={`${playerOfTheWeek?.firstName} ${playerOfTheWeek?.lastName}`}
-                width={900}
-                height={900}
-                className="h-[96%] w-full"
+                src={heroImageUrl}
+                alt={`${heroPlayer?.firstName || "Featured player"} ${heroPlayer?.lastName || ""}`.trim()}
+                fill
+                priority
+                sizes="(max-width: 768px) 100vw, 50vw"
+                className="z-10 -translate-x-6 object-contain object-bottom-left drop-shadow-[0_18px_28px_rgba(0,0,0,0.42)] sm:-translate-x-10 md:-translate-x-14"
               />
-              {/* <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent"></div> */}
-            </div>
-          </section>
-        </div>
+            ) : (
+              <div className="z-10 mb-16 font-heading text-lg font-bold text-primary-text-inverse/20">
+                {heroPlayer?.firstName?.[0] || "F"}
+              </div>
+            )}
 
-        {/* <div className="relative border-t border-primary-text-inverse/10 bg-primary-navy/80">
-          <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3 text-[0.65rem] tracking-[0.18em] text-primary-text-inverse/50 uppercase">
-            <span>FootballBank International / Talent in focus</span>
-            <span className="hidden items-center gap-2 sm:flex">
-              {playerOfTheWeek?.firstName} {playerOfTheWeek?.lastName} ·{" "}
-              {playerOfTheWeek?.position} <ArrowUpRight className="h-3 w-3" />
-            </span>
+            {heroPlayer && (
+              <div className="absolute bottom-[28%] z-20 w-max left-[35%]">
+                <p
+                  className={`whitespace-nowrap italic leading-none text-primary-text-inverse uppercase ${heroPlayerNameClass}`}
+                  style={{
+                    fontFamily: '"Segoe Script", "Brush Script MT", cursive',
+                  }}
+                >
+                  {heroPlayer.firstName}
+                </p>
+                <p className="whitespace-nowrap text-[9px] font-medium text-primary-text-inverse/80 uppercase mt-2 tracking-[0.24em]">
+                  FootballBank Talent
+                </p>
+                <span className="mt-3 block h-1 w-12 bg-primary-accent" />
+              </div>
+            )}
+
+            <div className="absolute right-[8%] bottom-[20%] z-20 hidden text-left text-xs leading-6 tracking-[0.3em] text-primary-text-inverse/85 uppercase sm:block">
+              <p>Talent</p>
+              <p>Beyond</p>
+              <p>Borders</p>
+              <span className="mt-3 block h-1 w-12 bg-primary-accent" />
+            </div>
           </div>
-        </div> */}
+        </div>
       </section>
 
+      {/* <HeroSection
+        home={home}
+        lang={lang}
+        heroPlayer={heroPlayer}
+        heroImageUrl={heroImageUrl}
+      /> */}
       {/* Assurance strip */}
 
       <div className="relative border-t border-white/10 bg-[#07182b]/90">
@@ -277,27 +310,29 @@ export default async function HomePage({ params }) {
                 className="group overflow-hidden rounded-lg border border-divider bg-primary-card"
               >
                 <div className="relative">
-                  <Link href={`/${lang}/players/${player.id}`} className="relative">
-                  <Image
-                    src={
-                      player.headshotUrl ||
-                      player.imageUrl?.[0] ||
-                      "/logo/logo3.svg"
-                    }
-                    alt={player.firstName}
-                    width={800}
-                    height={900}
-                    loading="lazy"
-                    className="h-52 w-full object-cover"
-                  />
-                  <span className="absolute top-4 left-4 rounded-sm bg-primary-navy/90 px-2.5 py-1 text-[0.6rem] tracking-[0.18em] text-primary-text-inverse uppercase">
-                    {player.position}
-                  </span>
-                  <span className="absolute right-4 bottom-4 flex h-9 w-9 items-center justify-center rounded-full bg-primary-card text-primary-text transition-transform group-hover:-translate-y-1">
-                    <ArrowUpRight className="h-4 w-4" />
-                  </span>
+                  <Link
+                    href={`/${lang}/players/${player.id}`}
+                    className="relative"
+                  >
+                    <Image
+                      src={
+                        player.headshotUrl ||
+                        player.imageUrl?.[0] ||
+                        "/logo/logo3.svg"
+                      }
+                      alt={player.firstName}
+                      width={800}
+                      height={900}
+                      loading="lazy"
+                      className="h-52 w-full object-cover"
+                    />
+                    <span className="absolute top-4 left-4 rounded-sm bg-primary-navy/90 px-2.5 py-1 text-[0.6rem] tracking-[0.18em] text-primary-text-inverse uppercase">
+                      {player.position}
+                    </span>
+                    <span className="absolute right-4 bottom-4 flex h-9 w-9 items-center justify-center rounded-full bg-primary-card text-primary-text transition-transform group-hover:-translate-y-1">
+                      <ArrowUpRight className="h-4 w-4" />
+                    </span>
                   </Link>
-                  
                 </div>
 
                 <div className="p-4">

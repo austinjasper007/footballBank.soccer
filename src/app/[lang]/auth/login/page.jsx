@@ -379,7 +379,7 @@ function LoginPageContent() {
             )}
 
             {/* OAuth Section */}
-            {step === "email" && (
+            {/* {step === "email" && (
               <>
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">
@@ -430,7 +430,7 @@ function LoginPageContent() {
                   </Button>
                 </div>
               </>
-            )}
+            )} */}
 
             {/* Back to Email */}
             {step === "otp" && (

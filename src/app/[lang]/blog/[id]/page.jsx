@@ -13,7 +13,7 @@ import Head from "next/head";
 import ImageCarousel from "@/components/ui/ImageCarousel";
 import { FaSquareXTwitter } from "react-icons/fa6";
 import dbConnect from "@/lib/mongodb";
-import { incrementPostView } from "@/actions/viewTrackingActions";
+import PostViewTracker from "@/components/blog/PostViewTracker";
 
 // Dynamic metadata generation
 export async function generateMetadata({ params }) {
@@ -72,8 +72,6 @@ export default async function BlogArticlePage({ params }) {
     notFound();
   }
 
-  await incrementPostView(postId);
-
   // Fetch additional data for sidebar
   let allPosts = [];
   try {
@@ -110,6 +108,7 @@ export default async function BlogArticlePage({ params }) {
 
   return (
     <>
+      <PostViewTracker postId={postId} />
       <Head>
         <script
           type="application/ld+json"

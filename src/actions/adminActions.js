@@ -270,6 +270,7 @@ export async function deletePlayer(id) {
 
 // POSTS
 export async function getAllPosts() {
+  await requireRole("editor");
   await dbConnect();
   try {
     const posts = await Post.find({}).lean().sort({ createdAt: -1 });
@@ -285,7 +286,7 @@ export async function createPost(data) {
   try {
     const post = await Post.create({
       ...data,
-      status: data.status === "Published" ? "Published" : "Draft",
+      status: ["Draft", "Published", "Archived"].includes(data.status) ? data.status : "Draft",
     });
     return toPlain(post);
   } catch (err) {
@@ -300,7 +301,12 @@ export async function updatePost(postId, data) {
     const { id, createdAt, updatedAt, ...updateData } = data;
     const updatedPost = await Post.findByIdAndUpdate(
       postId,
-      { ...updateData, status: updateData.status === "Published" ? "Published" : "Draft" },
+      {
+        ...updateData,
+        status: ["Draft", "Published", "Archived"].includes(updateData.status)
+          ? updateData.status
+          : "Draft",
+      },
       { new: true, runValidators: true },
     );
     return toPlain(updatedPost);

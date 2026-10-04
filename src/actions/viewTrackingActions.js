@@ -1,7 +1,7 @@
 "use server";
 
 import dbConnect from "@/lib/mongodb";
-import { Player, PlayerProfileView, Post, ResumeRequest, User } from "@/lib/schemas";
+import { Player, PlayerProfileView, Post, PostView, ResumeRequest, User } from "@/lib/schemas";
 import { getAuthUser } from "@/lib/oauth";
 import { sendEmail } from "@/lib/email";
 import { notifyAdmins } from "@/lib/adminNotifications";
@@ -9,10 +9,29 @@ import { brandedEmail, escapeEmailHtml } from "@/lib/emailTemplates";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://footballbank.soccer";
 
-export async function incrementPostView(postId) {
+export async function trackPostView(postId, visitorId) {
   await dbConnect();
-  const post = await Post.findByIdAndUpdate(postId, { $inc: { views: 1 } }, { new: true }).select("views").lean();
-  return post?.views || 0;
+  await PostView.init();
+
+  try {
+    await PostView.create({ postId, visitorId });
+  } catch (error) {
+    if (error?.code === 11000) return { tracked: false, reason: "already-counted" };
+    throw error;
+  }
+
+  const post = await Post.findOneAndUpdate(
+    { _id: postId, status: "Published" },
+    { $inc: { views: 1 } },
+    { new: true },
+  ).select("views").lean();
+
+  if (!post) {
+    await PostView.deleteOne({ postId, visitorId });
+    return { tracked: false, reason: "post-unavailable" };
+  }
+
+  return { tracked: true, views: post.views };
 }
 
 export async function trackPlayerProfileView(playerId, locale = "en") {

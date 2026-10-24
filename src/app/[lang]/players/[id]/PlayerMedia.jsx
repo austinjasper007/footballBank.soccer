@@ -175,19 +175,21 @@ export default function PlayerMedia({
         {activeSection === "overview" && (
           <section className="mt-10 grid gap-10 lg:grid-cols-[1.2fr_0.8fr]">
             <div>
-              <p className="eyebrow">About the player</p>
-              <h2 className="mt-5 font-heading text-3xl font-semibold sm:text-4xl">
-                A profile built for the next opportunity.
-              </h2>
-              <p className="mt-6 max-w-2xl text-base leading-8 text-primary-muted">
-                {canViewDetails && player.description
-                  ? player.description
-                  : "Explore the player media, then request the full profile when you are ready to take the next step."}
-              </p>
               {!canViewDetails && (
-                <div className="mt-8 max-w-xl">
+                <div className="max-w-xl">
                   <ResumeRequestForm playerId={player.id} lang={lang} />
                 </div>
+              )}
+              {canViewDetails && (
+                <>
+                  <p className="eyebrow">About the player</p>
+                  <h2 className="mt-5 font-heading text-3xl font-semibold sm:text-4xl">
+                    A profile built for the next opportunity.
+                  </h2>
+                  <p className="mt-6 max-w-2xl text-base leading-8 text-primary-muted">
+                    {player.description}
+                  </p>
+                </>
               )}
             </div>
             <div className="border-l border-divider pl-6 sm:pl-8">
@@ -326,6 +328,11 @@ export default function PlayerMedia({
             )}
           </section>
         )}
+        {activeSection === "stats" && !canViewDetails && (
+          <section className="mt-10">
+            <AccessRequestMessage />
+          </section>
+        )}
 
         {activeSection === "career" && canViewDetails && (
           <section className="mt-10">
@@ -362,15 +369,16 @@ export default function PlayerMedia({
             </div>
           </section>
         )}
+        {activeSection === "career" && !canViewDetails && (
+          <section className="mt-10">
+            <AccessRequestMessage />
+          </section>
+        )}
 
         {activeSection === "contact" && (
           <section className="mt-10 max-w-3xl">
-            <p className="eyebrow">Representation</p>
-            <h2 className="mt-5 font-heading text-3xl font-semibold sm:text-4xl">
-              Keep the conversation moving.
-            </h2>
             {canViewDetails ? (
-              <div className="mt-8 grid gap-5 border-t border-divider pt-6 sm:grid-cols-2">
+              <div className="grid gap-5 border-t border-divider pt-6 sm:grid-cols-2">
                 <Info icon={Mail} label="Email" value={player.email} />
                 <Info
                   icon={Phone}
@@ -387,8 +395,8 @@ export default function PlayerMedia({
                 />
               </div>
             ) : (
-              <div className="mt-8 max-w-xl">
-                <ResumeRequestForm playerId={player.id} lang={lang} />
+              <div>
+                <AccessRequestMessage />
               </div>
             )}
           </section>
@@ -524,6 +532,15 @@ function EmptyInline({ icon: Icon, text }) {
   return (
     <div className="mt-8 flex items-center gap-3 border border-dashed border-divider p-5 text-sm text-primary-muted">
       <Icon className="size-4 text-primary-action" /> {text}
+    </div>
+  );
+}
+
+function AccessRequestMessage() {
+  return (
+    <div className="border border-primary-action/20 bg-primary-action/5 p-6 text-sm leading-6 text-primary-muted">
+      Fill out the request form on the overview tab to contact FootballBank
+      international for full player details
     </div>
   );
 }

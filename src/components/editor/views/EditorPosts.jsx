@@ -19,9 +19,15 @@ import { Search } from "lucide-react";
 import { DeleteConfirmationModal } from "@/components/admin/dialogs/DeleteConfirmationModal";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import LoadingSplash from "@/components/ui/loading-splash";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-import { getAllPosts } from "@/actions/publicActions";
-import { updatePost, deletePost } from "@/actions/adminActions";
+import { deletePost, getAllPosts } from "@/actions/adminActions";
 
 const ITEMS_PER_PAGE = 5;
 
@@ -36,6 +42,8 @@ export default function EditorPosts({ onNavigateToEditor }) {
   const { toast } = useToast();
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [sortOrder, setSortOrder] = useState("newest");
   const [currentPage, setCurrentPage] = useState(1);
   const [posts, setPosts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -107,13 +115,31 @@ export default function EditorPosts({ onNavigateToEditor }) {
   };
 
   const filteredPosts = useMemo(() => {
-    return posts.filter(
-      (post) =>
-        post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        post.author.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [posts, searchQuery]);
+    const query = searchQuery.trim().toLowerCase();
+    const filtered = posts.filter((post) => {
+      const matchesStatus = statusFilter === "all" || post.status === statusFilter;
+      const matchesSearch = !query || [post.title, post.content, post.author]
+        .some((value) => (value || "").toLowerCase().includes(query));
+      return matchesStatus && matchesSearch;
+    });
+
+    return filtered.sort((a, b) => {
+      if (sortOrder === "title-asc") {
+        return a.title.localeCompare(b.title, undefined, { sensitivity: "base" });
+      }
+      if (sortOrder === "views-asc") {
+        return (a.views || 0) - (b.views || 0);
+      }
+      if (sortOrder === "views-desc") {
+        return (b.views || 0) - (a.views || 0);
+      }
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+  }, [posts, searchQuery, sortOrder, statusFilter]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, sortOrder, statusFilter]);
 
   const paginatedPosts = useMemo(() => {
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -190,26 +216,48 @@ export default function EditorPosts({ onNavigateToEditor }) {
       </div>
 
       {/* Table Header */}
-      <div className="flex md:items-center justify-between">
-        <div className="flex flex-col md:flex-row md:items-center gap-4">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center">
           <h2 className="text-xl font-semibold text-nowrap">Blog Posts</h2>
 
           <div className="relative w-full md:w-80">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={setSearchQuery}
-            placeholder="Search posts..."
-            className="w-full rounded-md border border-divider bg-primary-card px-3 py-2 pr-10 text-sm outline-none focus:border-primary-action focus:ring-2 focus:ring-primary-action/20"
-          />
-          <Search className="absolute right-3 top-1/2 size-4 -translate-y-1/2 text-primary-muted" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Search posts..."
+              className="w-full rounded-md border border-divider bg-primary-card px-3 py-2 pr-10 text-sm outline-none focus:border-primary-action focus:ring-2 focus:ring-primary-action/20"
+            />
+            <Search className="absolute right-3 top-1/2 size-4 -translate-y-1/2 text-primary-muted" />
           </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger aria-label="Filter posts by status" className="w-full md:w-40">
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All statuses</SelectItem>
+              <SelectItem value="Draft">Draft</SelectItem>
+              <SelectItem value="Published">Published</SelectItem>
+              <SelectItem value="Archived">Archived</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={sortOrder} onValueChange={setSortOrder}>
+            <SelectTrigger aria-label="Sort posts" className="w-full md:w-48">
+              <SelectValue placeholder="Sort posts" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="newest">Newest first</SelectItem>
+              <SelectItem value="title-asc">Title A-Z</SelectItem>
+              <SelectItem value="views-asc">Views: low to high</SelectItem>
+              <SelectItem value="views-desc">Views: high to low</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => window.open('/blog', '_blank')}>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="outline" onClick={() => window.open('/blog', '_blank')}>
             View Posts
           </Button>
-          <Button onClick={handleCreateNewPost}>
+          <Button type="button" onClick={handleCreateNewPost}>
             <Plus className="h-4 w-4 mr-2" />
             Create New Post
           </Button>
@@ -273,6 +321,13 @@ export default function EditorPosts({ onNavigateToEditor }) {
                     </TableCell>
                   </TableRow>
                 ))}
+                {paginatedPosts.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="py-8 text-center text-primary-muted">
+                      No posts match the selected filters.
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody></Table>
         </CardContent>
       </Card>

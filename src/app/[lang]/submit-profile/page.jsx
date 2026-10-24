@@ -72,7 +72,7 @@ export default function PlayerSubmissionForm() {
       season: { Appearances: "", Goals: "", Assists: "", Minutes: "" },
       international: { Caps: "", Goals: "", Tournaments: "" },
     },
-    clubHistory: [{ clubName: "", startDate: "", endDate: "", position: "" }],
+    clubHistory: [{ clubName: "", startDate: "", endDate: "", position: "", isCurrent: true }],
     featured: false,
     playerOfTheWeek: false,
     headshotUrl: "",
@@ -223,6 +223,9 @@ export default function PlayerSubmissionForm() {
   const updateClubHistory = (index, field, value) => {
     setFormData((previous) => ({
       ...previous,
+      ...(previous.clubHistory[index]?.isCurrent && field === "clubName"
+        ? { currentClub: value }
+        : {}),
       clubHistory: previous.clubHistory.map((club, clubIndex) =>
         clubIndex === index ? { ...club, [field]: value } : club,
       ),
@@ -359,13 +362,6 @@ export default function PlayerSubmissionForm() {
                 </SelectContent>
               </Select>
             </div>
-            <InputField
-              label={t?.currentClub || "Current club"}
-              value={formData.currentClub}
-              onChange={(value) =>
-                setFormData((previous) => ({ ...previous, currentClub: value }))
-              }
-            />
             <div>
               <Label>{t?.position || "Position"} *</Label>
               <Select
@@ -433,15 +429,16 @@ export default function PlayerSubmissionForm() {
                 </SelectContent>
               </Select>
             </div>
-            <InputField
-              label={t?.availableFrom || "Available From"}
-              type="month"
-              value={formData.availableFrom}
-              onChange={(val) =>
-                setFormData({ ...formData, availableFrom: val })
-              }
-              disabled={formData.contractStatus !== "Unavailable"}
-            />
+            {formData.contractStatus === "Unavailable" && (
+              <InputField
+                label={t?.availableFrom || "Available From"}
+                type="month"
+                value={formData.availableFrom}
+                onChange={(val) =>
+                  setFormData({ ...formData, availableFrom: val })
+                }
+              />
+            )}
             <MultiSelect
               label={t?.preferredLeagues || "Preferred Leagues"}
               placeholder={t?.selectPreferredLeague || "Select preferred leagues"}
@@ -484,8 +481,11 @@ export default function PlayerSubmissionForm() {
               </div>
             ))}
             <div>
-              <div className="mb-3 flex items-end justify-between gap-4"><div><h3 className="font-heading text-lg font-semibold">{t?.clubHistory || "Club history"}</h3><p className="text-sm text-primary-muted">{t?.clubHistorySubtitle || "Optional previous clubs and playing periods."}</p></div><Button type="button" variant="outline" onClick={() => setFormData((previous) => ({ ...previous, clubHistory: [...previous.clubHistory, { clubName: "", startDate: "", endDate: "", position: "" }] }))}>{t?.addClub || "+ Add club"}</Button></div>
-              <div className="space-y-4">{formData.clubHistory.map((club, index) => <div key={index} className="grid gap-4 border-t border-divider pt-4 sm:grid-cols-2 lg:grid-cols-4"><InputField label={t?.clubName || "Club name"} value={club.clubName} onChange={(value) => updateClubHistory(index, "clubName", value)} /><InputField label={t?.startMonth || "Start month"} type="month" value={club.startDate} onChange={(value) => updateClubHistory(index, "startDate", value)} /><InputField label={t?.endMonth || "End month"} type="month" value={club.endDate} onChange={(value) => updateClubHistory(index, "endDate", value)} /><div><Label>{t?.position || "Position"}</Label><Select value={club.position} onValueChange={(value) => updateClubHistory(index, "position", value)}><SelectTrigger><SelectValue placeholder={t?.selectPosition || "Select position"} /></SelectTrigger><SelectContent>{["Goalkeeper", "Defender", "Midfielder", "Forward"].map((position) => <SelectItem key={position} value={position}>{position}</SelectItem>)}</SelectContent></Select></div></div>)}</div>
+              <div className="mb-3 flex items-end justify-between gap-4"><div><h3 className="font-heading text-lg font-semibold">{t?.clubHistory || "Club history"}</h3><p className="text-sm text-primary-muted">{t?.clubHistorySubtitle || "Add your current club and previous clubs with playing periods."}</p></div><Button type="button" variant="outline" onClick={() => setFormData((previous) => ({ ...previous, clubHistory: [...previous.clubHistory, { clubName: "", startDate: "", endDate: "", position: "", isCurrent: false }] }))}>{t?.addClub || "+ Add club"}</Button></div>
+              <div className="space-y-4">{formData.clubHistory.map((club, index) => {
+                if (club.isCurrent && formData.contractStatus !== "Unavailable") return null;
+                return <div key={index} className="grid gap-4 border-t border-divider pt-4 sm:grid-cols-2 lg:grid-cols-4"><InputField label={club.isCurrent ? (t?.currentClub || "Current club") : (t?.clubName || "Club name")} value={club.clubName} onChange={(value) => updateClubHistory(index, "clubName", value)} /><InputField label={t?.startMonth || "Start month"} type="month" value={club.startDate} onChange={(value) => updateClubHistory(index, "startDate", value)} /><InputField label={t?.endMonth || "End month"} type="month" value={club.endDate} onChange={(value) => updateClubHistory(index, "endDate", value)} /><div><Label>{t?.position || "Position"}</Label><Select value={club.position} onValueChange={(value) => updateClubHistory(index, "position", value)}><SelectTrigger><SelectValue placeholder={t?.selectPosition || "Select position"} /></SelectTrigger><SelectContent>{["Goalkeeper", "Defender", "Midfielder", "Forward"].map((position) => <SelectItem key={position} value={position}>{position}</SelectItem>)}</SelectContent></Select></div></div>;
+              })}</div>
             </div>
           </div>
           <div className="mt-8 flex justify-between"><Button variant="outline" onClick={prevStep}>{t?.back || "Back"}</Button><Button onClick={nextStep}>{t?.continueToMedia || "Continue to media"}</Button></div>

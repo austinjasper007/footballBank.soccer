@@ -138,6 +138,13 @@ const postSchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now }
 });
 
+const postViewSchema = new mongoose.Schema({
+  postId: { type: mongoose.Schema.Types.ObjectId, ref: 'Post', required: true },
+  visitorId: { type: String, required: true },
+  viewedAt: { type: Date, default: Date.now },
+});
+postViewSchema.index({ postId: 1, visitorId: 1 }, { unique: true });
+
 // Payment Method Schema
 const paymentMethodSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -273,6 +280,7 @@ export const User = defineModel('User', userSchema);
 export const OtpToken = defineModel('OtpToken', otpTokenSchema);
 export const Player = defineModel('Player', playerSchema);
 export const Post = defineModel('Post', postSchema);
+export const PostView = defineModel('PostView', postViewSchema);
 export const PaymentMethod = defineModel('PaymentMethod', paymentMethodSchema);
 export const Message = defineModel('Message', messageSchema);
 export const Submission = defineModel('Submission', submissionSchema);

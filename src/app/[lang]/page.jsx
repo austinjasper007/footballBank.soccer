@@ -129,11 +129,11 @@ export default async function HomePage({ params }) {
         <div className="absolute inset-0 bg-linear-to-r from-primary-navy via-primary-navy/30 to-transparent" />
 
         <div className="relative mx-auto grid max-w-8xl grid-cols-1 items-center gap-0 px-4 py-5 sm:px-6 md:grid-cols-[1.02fr_0.98fr] md:py-4 md:pl-10 md:pr-1">
-          <section className="flex min-w-0 flex-col justify-center px-1 py-6 sm:px-2 md:py-12 md:pl-6 lg:pl-10">
-            <p className="eyebrow">
+          <section className="flex min-w-0 flex-col justify-center px-1 py-6 sm:px-2 md:py-8 md:pl-6 lg:pl-10">
+            {/* <p className="eyebrow">
               {home?.heroEyebrow ||
                 "Representation · Recruitment · Opportunity"}
-            </p>
+            </p> */}
             <h1 className="mt-5 max-w-xl font-heading text-3xl leading-[1.2] text-primary-text-inverse uppercase sm:mt-6 sm:text-4xl lg:text-6xl lg:leading-[1.2]">
               {home?.heroTitleLine1 || "Connecting football"}
               <br />
@@ -223,12 +223,6 @@ export default async function HomePage({ params }) {
         </div>
       </section>
 
-      {/* <HeroSection
-        home={home}
-        lang={lang}
-        heroPlayer={heroPlayer}
-        heroImageUrl={heroImageUrl}
-      /> */}
       {/* Assurance strip */}
 
       <div className="relative border-t border-white/10 bg-[#07182b]/90">
@@ -238,7 +232,7 @@ export default async function HomePage({ params }) {
               <UserRound className="h-3.5 w-3.5" />
             </span>
 
-            <span className="text-[9px] font-medium tracking-[0.12em] text-white/60 uppercase">
+            <span className="text-[9px] md:text-[10px] font-bold tracking-[0.12em] text-white/60 uppercase">
               {home?.assuranceStrip?.playerRepresentation ||
                 "Player representation"}
             </span>
@@ -249,7 +243,7 @@ export default async function HomePage({ params }) {
               <FileSignature className="h-3.5 w-3.5" />
             </span>
 
-            <span className="text-[9px] font-medium tracking-[0.12em] text-white/60 uppercase">
+            <span className="text-[9px] md:text-[10px] font-bold tracking-[0.12em] text-white/60 uppercase">
               {home?.assuranceStrip?.clubRecruitment || "Club recruitment"}
             </span>
           </div>
@@ -259,7 +253,7 @@ export default async function HomePage({ params }) {
               <Globe2Icon className="h-3.5 w-3.5" />
             </span>
 
-            <span className="text-[9px] font-medium tracking-[0.12em] text-white/60 uppercase">
+            <span className="text-[9px] md:text-[10px] font-bold tracking-[0.12em] text-white/60 uppercase">
               {home?.assuranceStrip?.internationalOpportunities ||
                 "International opportunities"}
             </span>
@@ -270,7 +264,7 @@ export default async function HomePage({ params }) {
               <TrendingUp className="h-3.5 w-3.5" />
             </span>
 
-            <span className="text-[9px] font-medium tracking-[0.12em] text-white/60 uppercase">
+            <span className="text-[9px] md:text-[10px] font-bold tracking-[0.12em] text-white/60 uppercase">
               {home?.assuranceStrip?.careerDevelopment || "Career development"}
             </span>
           </div>

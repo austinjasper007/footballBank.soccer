@@ -67,7 +67,12 @@ const EditorDashboard = () => {
   const renderView = () => {
     switch (activeView) {
       case "overview":
-        return <EditorOverview onNavigateToEditor={handleNavigateToEditor} />;
+        return (
+          <EditorOverview
+            onNavigateToEditor={handleNavigateToEditor}
+            onNavigateToPosts={() => setActiveView("posts")}
+          />
+        );
       case "posts":
         return <EditorPosts onNavigateToEditor={handleNavigateToEditor} />;
       case "editor":
@@ -79,7 +84,12 @@ const EditorDashboard = () => {
           />
         );
       case "shop":
-        return <EditorOverview onNavigateToEditor={handleNavigateToEditor} />;
+        return (
+          <EditorOverview
+            onNavigateToEditor={handleNavigateToEditor}
+            onNavigateToPosts={() => setActiveView("posts")}
+          />
+        );
       default:
         return <EditorOverview />;
     }

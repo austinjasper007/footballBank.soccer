@@ -39,6 +39,35 @@ const normalizeLeagues = (value) => {
   return [];
 };
 
+const getClubHistory = (player) => {
+  const clubHistory = Array.isArray(player?.clubHistory)
+    ? player.clubHistory.map((club) => ({ ...club }))
+    : [];
+  let currentClubIndex = clubHistory.findIndex((club) => club.isCurrent);
+
+  if (currentClubIndex < 0 && player?.currentClub) {
+    currentClubIndex = clubHistory.findIndex(
+      (club) => club.clubName?.trim().toLowerCase() === player.currentClub.trim().toLowerCase(),
+    );
+  }
+
+  if (currentClubIndex < 0) {
+    clubHistory.unshift({
+      clubName: player?.currentClub || "",
+      startDate: "",
+      endDate: "",
+      position: "",
+      isCurrent: true,
+    });
+    currentClubIndex = 0;
+  }
+
+  return clubHistory.map((club, index) => ({
+    ...club,
+    isCurrent: index === currentClubIndex,
+  }));
+};
+
 /**
  * PlayerDialog component for adding or editing a football player.
  */
@@ -84,9 +113,7 @@ export function PlayerDialog({ open, onOpenChange, player, onSave }) {
       season: { Appearances: "", Goals: "", Assists: "", Minutes: "" },
       international: { Caps: "", Goals: "", Tournaments: "" },
     },
-    clubHistory: player?.clubHistory || [
-      { clubName: "", startDate: "", endDate: "", position: "" },
-    ],
+    clubHistory: getClubHistory(player),
   });
 
   useEffect(() => {
@@ -132,15 +159,19 @@ export function PlayerDialog({ open, onOpenChange, player, onSave }) {
       season: { Appearances: "", Goals: "", Assists: "", Minutes: "" },
       international: { Caps: "", Goals: "", Tournaments: "" },
     },
-    clubHistory: player?.clubHistory || [
-      { clubName: "", startDate: "", endDate: "", position: "" },
-    ],
+    clubHistory: getClubHistory(player),
   });
 
   const updateClubHistory = (index, field, value) => {
     const updated = [...formData.clubHistory];
     updated[index][field] = value;
-    setFormData({ ...formData, clubHistory: updated });
+    setFormData({
+      ...formData,
+      ...(updated[index]?.isCurrent && field === "clubName"
+        ? { currentClub: value }
+        : {}),
+      clubHistory: updated,
+    });
   };
 
   const handleSave = async () => {
@@ -158,9 +189,15 @@ export function PlayerDialog({ open, onOpenChange, player, onSave }) {
       return;
     }
     try {
+      const playerData = {
+        ...formData,
+        currentClub:
+          formData.clubHistory.find((club) => club.isCurrent)?.clubName ??
+          formData.currentClub,
+      };
       const result = player?.id
-        ? await updatePlayer(player.id, formData)
-        : await createPlayer(formData);
+        ? await updatePlayer(player.id, playerData)
+        : await createPlayer(playerData);
       if (!result?.id) throw new Error("Failed to save player");
       const deletionResults = await Promise.allSettled(
         [...new Set(pendingStorageDeletes)].map(deleteFirebaseStorageFile),
@@ -169,7 +206,7 @@ export function PlayerDialog({ open, onOpenChange, player, onSave }) {
         (deletion) => deletion.status === "rejected",
       ).length;
       const savedId = player?.id || result?.id;
-      onSave({ ...formData, id: savedId });
+      onSave({ ...playerData, id: savedId });
       onOpenChange(false);
       toast({
         title: failedDeletes ? "Player saved with a warning" : "Success",
@@ -336,11 +373,6 @@ export function PlayerDialog({ open, onOpenChange, player, onSave }) {
               </SelectContent>
             </Select>
           </div>
-          <InputField
-            label="Current Club"
-            value={formData.currentClub}
-            onChange={(val) => setFormData({ ...formData, currentClub: val })}
-          />
           <div>
             <Label>Position *</Label>
             <Select
@@ -427,13 +459,14 @@ export function PlayerDialog({ open, onOpenChange, player, onSave }) {
               </SelectContent>
             </Select>
           </div>
-          <InputField
-            label="Available From"
-            type="month"
-            value={formData.availableFrom}
-            onChange={(val) => setFormData({ ...formData, availableFrom: val })}
-            disabled={formData.contractStatus !== "Unavailable"}
-          />
+          {formData.contractStatus === "Unavailable" && (
+            <InputField
+              label="Available From"
+              type="month"
+              value={formData.availableFrom}
+              onChange={(val) => setFormData({ ...formData, availableFrom: val })}
+            />
+          )}
           <MultiSelect
             label="Preferred Leagues"
             placeholder="Select preferred leagues"
@@ -479,9 +512,10 @@ export function PlayerDialog({ open, onOpenChange, player, onSave }) {
         <div className="mt-6">
           <Label className="font-semibold mb-2">Club History</Label>
           {formData.clubHistory.map((club, i) => (
+            club.isCurrent && formData.contractStatus !== "Unavailable" ? null : (
             <div key={i} className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-2">
               <InputField
-                label="Club Name"
+                label={club.isCurrent ? "Current Club" : "Club Name"}
                 value={club.clubName}
                 onChange={(val) => updateClubHistory(i, "clubName", val)}
               />
@@ -515,6 +549,7 @@ export function PlayerDialog({ open, onOpenChange, player, onSave }) {
                 </Select>
               </div>
             </div>
+            )
           ))}
           <Button
             variant="outline"
@@ -524,7 +559,7 @@ export function PlayerDialog({ open, onOpenChange, player, onSave }) {
                 ...prev,
                 clubHistory: [
                   ...prev.clubHistory,
-                  { clubName: "", startDate: "", endDate: "", position: "" },
+                  { clubName: "", startDate: "", endDate: "", position: "", isCurrent: false },
                 ],
               }))
             }

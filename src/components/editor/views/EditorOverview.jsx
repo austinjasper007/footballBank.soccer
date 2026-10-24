@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Eye, FileText, Edit, TrendingUp } from "lucide-react";
-import { getAllPosts } from "@/actions/publicActions";
+import { getAllPosts } from "@/actions/adminActions";
 import LoadingSplash from "@/components/ui/loading-splash";
 
-export default function EditorOverview({ onNavigateToEditor }) {
+export default function EditorOverview({ onNavigateToEditor, onNavigateToPosts }) {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -37,7 +37,7 @@ export default function EditorOverview({ onNavigateToEditor }) {
   };
 
   const getRecentPosts = () => {
-    return posts
+    return [...posts]
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
       .slice(0, 5);
   };
@@ -168,8 +168,9 @@ export default function EditorOverview({ onNavigateToEditor }) {
             <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
             <div className="space-y-3">
               <button
+                type="button"
                 onClick={() => onNavigateToEditor && onNavigateToEditor()}
-                className="w-full rounded-lg border border-primary-action/20 bg-primary-action/5 p-3 text-left transition-colors hover:bg-primary-action/10"
+                className="w-full cursor-pointer rounded-lg border border-primary-action/20 bg-primary-action/5 p-3 text-left transition-colors hover:bg-primary-action/10"
               >
                 <div className="flex items-center gap-3">
                   <Edit className="h-5 w-5 text-primary-action" />
@@ -184,7 +185,11 @@ export default function EditorOverview({ onNavigateToEditor }) {
                 </div>
               </button>
 
-              <button className="w-full rounded-lg border border-divider bg-primary-bg p-3 text-left transition-colors hover:bg-primary-action/5">
+              <button
+                type="button"
+                onClick={() => onNavigateToPosts && onNavigateToPosts()}
+                className="w-full cursor-pointer rounded-lg border border-divider bg-primary-bg p-3 text-left transition-colors hover:bg-primary-action/5"
+              >
                 <div className="flex items-center gap-3">
                   <FileText className="h-5 w-5 text-primary-action" />
                   <div>

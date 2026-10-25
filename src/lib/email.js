@@ -106,6 +106,23 @@ export async function sendWelcomeEmail({ to, firstName }) {
   return sendEmail({ to, subject: "Welcome to FootballBank International", ...email });
 }
 
+export async function sendMediaAccessEmail({ to, recipientName, playerName, organization, customMessage, expiresAt, url }) {
+  const expiry = new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" }).format(expiresAt);
+  const safeMessage = customMessage ? `<p>${escapeEmailHtml(customMessage)}</p>` : "";
+  const email = brandedEmail({
+    eyebrow: "FootballBank Media",
+    preheader: `Private media access for ${playerName}`,
+    title: "Player media access",
+    greeting: `Hello ${recipientName},`,
+    body: `<p>You have been granted private access to the FootballBank profile and media library for <strong>${escapeEmailHtml(playerName)}</strong>.</p>${safeMessage}`,
+    details: [{ label: "Organisation", value: organization || "Not provided" }, { label: "Access expires (UTC)", value: expiry }],
+    ctaLabel: "View player media",
+    ctaUrl: url,
+    footerNote: "This personal access link is time-limited. Please do not forward it.",
+  });
+  return sendEmail({ to, subject: `Private player media access: ${playerName}`, ...email });
+}
+
 export async function sendPlayerSubmissionDecisionEmail({ to, firstName, playerName, approved, reason }) {
   const email = brandedEmail({
     preheader: approved ? "Your player profile has been approved" : "Update on your player profile submission",

@@ -23,10 +23,12 @@ import {
 } from "lucide-react";
 import {
   createMediaPlaylist,
+  deleteMediaShareHistory,
   getMediaPortalLibrary,
   getMediaPortalPlayers,
   revokeMediaShare,
   sendMediaShare,
+  setMediaContactConsent,
   setMediaPublication,
   updatePlayerMedia,
 } from "@/actions/mediaPortalActions";
@@ -51,6 +53,12 @@ const readableStatus = (status) => ({
 const fieldClass = "h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 shadow-sm transition placeholder:text-slate-400 hover:border-slate-300 focus:!outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500";
 const labelClass = "mb-2 block text-xs font-semibold uppercase tracking-[0.12em] text-slate-500";
 const sectionClass = "overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm";
+const mediaPortalTabs = [
+  { id: "upload", label: "Upload", icon: UploadCloud },
+  { id: "library", label: "Media library", icon: ListVideo },
+  { id: "invite", label: "Send invite", icon: Mail },
+  { id: "shares", label: "Share history", icon: Users },
+];
 
 function readVideoDimensions(file) {
   return new Promise((resolve, reject) => {
@@ -72,8 +80,12 @@ function readVideoDimensions(file) {
 export default function MediaPortalView() {
   const [players, setPlayers] = useState([]);
   const [selected, setSelected] = useState("");
+  const [activeTab, setActiveTab] = useState("upload");
   const [consent, setConsent] = useState(false);
+  const [contactConsent, setContactConsent] = useState(false);
   const [library, setLibrary] = useState({ media: [], playlists: [], shares: [] });
+  const [selectedShareIds, setSelectedShareIds] = useState([]);
+  const [shareHistoryBusy, setShareHistoryBusy] = useState(false);
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const [collectionsBusy, setCollectionsBusy] = useState(false);
@@ -130,6 +142,9 @@ export default function MediaPortalView() {
 
   useEffect(() => {
     setConsent(false);
+    setContactConsent(Boolean(player?.publication?.contactConsentConfirmedAt));
+    setActiveTab("upload");
+    setSelectedShareIds([]);
     refreshLibrary(selected).catch((error) => setNotice(error.message));
   }, [selected]);
 
@@ -143,6 +158,21 @@ export default function MediaPortalView() {
       setNotice("Player publication updated.");
     } catch (error) {
       setNotice(error.message);
+    }
+  }
+
+  async function saveContactConsent() {
+    try {
+      await setMediaContactConsent(selected, contactConsent);
+      await refreshPlayers();
+      const message = contactConsent
+        ? "Consent to share player contact details recorded."
+        : "Player contact details are now hidden from private CVs.";
+      setNotice(message);
+      toast({ title: "Contact sharing updated", description: message });
+    } catch (error) {
+      setNotice(error.message);
+      toast({ title: "Could not update contact sharing", description: error.message, variant: "destructive" });
     }
   }
 
@@ -407,6 +437,44 @@ export default function MediaPortalView() {
     }
   }
 
+  async function clearShareHistory(shareIds = null) {
+    const isClearAll = shareIds === null;
+    const count = isClearAll ? library.shares.length : shareIds.length;
+    if (!count) return;
+    const confirmation = isClearAll
+      ? `Clear all ${count} share history entries for this player? Active access links will be revoked.`
+      : `Clear ${count} selected share history entr${count === 1 ? "y" : "ies"}? Active access links will be revoked.`;
+    if (!window.confirm(confirmation)) return;
+
+    setShareHistoryBusy(true);
+    try {
+      const result = await deleteMediaShareHistory(selected, shareIds);
+      await refreshLibrary();
+      setSelectedShareIds([]);
+      const message = `${result.deletedCount} share history entr${result.deletedCount === 1 ? "y was" : "ies were"} cleared.`;
+      setNotice(message);
+      toast({ title: "Share history cleared", description: message });
+    } catch (error) {
+      setNotice(error.message);
+      toast({
+        title: "Could not clear share history",
+        description: error.message || "Refresh the list and try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setShareHistoryBusy(false);
+    }
+  }
+
+  function toggleShareSelection(shareId) {
+    setSelectedShareIds((current) => current.includes(shareId)
+      ? current.filter((id) => id !== shareId)
+      : [...current, shareId]);
+  }
+
+  const allSharesSelected = library.shares.length > 0
+    && library.shares.every((share) => selectedShareIds.includes(share.id));
+
   return (
     <div className="mx-auto max-w-7xl space-y-6 pb-8">
       <section className="relative isolate overflow-hidden rounded-3xl bg-[#0b1220] p-6 text-white shadow-xl shadow-slate-900/10 sm:p-8 lg:p-10">
@@ -493,6 +561,24 @@ export default function MediaPortalView() {
                   Consent recorded {new Date(player.publication.consentConfirmedAt).toLocaleDateString()}
                 </span>
               )}
+              <div className="flex flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2">
+                <label className="flex cursor-pointer items-center gap-2 text-xs text-slate-200">
+                  <input
+                    type="checkbox"
+                    checked={contactConsent}
+                    onChange={(event) => setContactConsent(event.target.checked)}
+                    className="size-4 accent-amber-400 focus:ring-amber-300"
+                  />
+                  Consent to share email and phone
+                </label>
+                <button
+                  type="button"
+                  className="rounded-lg bg-white/10 px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/15"
+                  onClick={saveContactConsent}
+                >
+                  Save contact consent
+                </button>
+              </div>
               <button
                 className={`inline-flex h-11 items-center justify-center gap-2 rounded-xl px-5 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-4 ${player.publication?.isPublished ? "border border-white/15 bg-white/10 text-white hover:bg-white/15 focus-visible:ring-white/15" : "bg-amber-300 text-slate-950 shadow-lg shadow-amber-300/10 hover:bg-amber-200 focus-visible:ring-amber-300/25"}`}
                 onClick={publishPlayer}
@@ -516,7 +602,39 @@ export default function MediaPortalView() {
         </section>
       ) : (
         <>
-          <section className={sectionClass}>
+          <nav
+            aria-label="Player media sections"
+            className="mb-5 grid grid-cols-2 gap-2 rounded-2xl border border-slate-200/80 bg-slate-100/80 p-2 sm:grid-cols-4"
+          >
+            {mediaPortalTabs.map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                type="button"
+                aria-pressed={activeTab === id}
+                onClick={() => setActiveTab(id)}
+                className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition sm:text-sm ${
+                  activeTab === id
+                    ? "bg-white text-slate-900 shadow-sm ring-1 ring-slate-200"
+                    : "text-slate-500 hover:bg-white/70 hover:text-slate-800"
+                }`}
+              >
+                <Icon className="size-4 shrink-0" />
+                <span>{label}</span>
+                {id === "library" && (
+                  <span className={`rounded-full px-1.5 py-0.5 text-[10px] ${activeTab === id ? "bg-blue-50 text-blue-700" : "bg-slate-200 text-slate-600"}`}>
+                    {library.media.length}
+                  </span>
+                )}
+                {id === "shares" && (
+                  <span className={`rounded-full px-1.5 py-0.5 text-[10px] ${activeTab === id ? "bg-blue-50 text-blue-700" : "bg-slate-200 text-slate-600"}`}>
+                    {library.shares.length}
+                  </span>
+                )}
+              </button>
+            ))}
+          </nav>
+
+          <section id="media-tab-upload" hidden={activeTab !== "upload"} className={sectionClass}>
             <div className="border-b border-slate-100 px-5 py-5 sm:px-7">
               <div className="flex items-start gap-3">
                 <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
@@ -646,7 +764,7 @@ export default function MediaPortalView() {
             </form>
           </section>
 
-          <section className={sectionClass}>
+          <section id="media-tab-library" hidden={activeTab !== "library"} className={sectionClass}>
             <div className="flex flex-col gap-4 border-b border-slate-100 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-7">
               <div className="flex items-start gap-3">
                 <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
@@ -816,7 +934,7 @@ export default function MediaPortalView() {
             </div>
           </section>
 
-          <section className={sectionClass}>
+          <section id="media-tab-invite" hidden={activeTab !== "invite"} className={sectionClass}>
             <div className="border-b border-slate-100 px-5 py-5 sm:px-7">
               <div className="flex items-start gap-3">
                 <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
@@ -870,22 +988,66 @@ export default function MediaPortalView() {
             </form>
           </section>
 
-          <section className={sectionClass}>
-            <div className="border-b border-slate-100 px-5 py-5 sm:px-7">
+          <section id="media-tab-shares" hidden={activeTab !== "shares"} className={sectionClass}>
+            <div className="flex flex-col gap-4 border-b border-slate-100 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-7">
               <div className="flex items-start gap-3">
                 <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
                   <Users className="size-5" />
                 </div>
                 <div>
                   <h3 className="font-heading text-xl font-semibold text-slate-900 sm:text-2xl">Recipient access</h3>
-                  <p className="mt-1 text-sm text-slate-500">Review active and past invitations, expiry dates, and opens.</p>
+                  <p className="mt-1 text-sm text-slate-500">Review invitations and opens. Clearing hides entries and revokes active links; audit records are retained.</p>
                 </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {library.shares.length > 0 && (
+                  <label className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-xl border border-slate-200 px-3 text-xs font-semibold text-slate-600">
+                    <input
+                      type="checkbox"
+                      checked={allSharesSelected}
+                      disabled={shareHistoryBusy}
+                      onChange={() => setSelectedShareIds(allSharesSelected ? [] : library.shares.map((share) => share.id))}
+                      className="size-4 rounded accent-blue-600"
+                    />
+                    Select all
+                  </label>
+                )}
+                {selectedShareIds.length > 0 && (
+                  <button
+                    type="button"
+                    disabled={shareHistoryBusy}
+                    onClick={() => clearShareHistory(selectedShareIds)}
+                    className="inline-flex h-10 items-center gap-2 rounded-xl border border-rose-200 px-3 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-wait disabled:opacity-60"
+                  >
+                    <Trash2 className="size-3.5" />
+                    Clear selected ({selectedShareIds.length})
+                  </button>
+                )}
+                {library.shares.length > 0 && (
+                  <button
+                    type="button"
+                    disabled={shareHistoryBusy}
+                    onClick={() => clearShareHistory()}
+                    className="inline-flex h-10 items-center gap-2 rounded-xl bg-rose-600 px-3 text-xs font-semibold text-white transition hover:bg-rose-700 disabled:cursor-wait disabled:opacity-60"
+                  >
+                    <Trash2 className="size-3.5" />
+                    Clear all
+                  </button>
+                )}
               </div>
             </div>
             <div className="space-y-3 p-4 sm:p-6">
               {library.shares.map((share) => (
                 <article key={share.id} className="flex flex-col gap-4 rounded-2xl border border-slate-200 p-4 transition hover:bg-slate-50/70 sm:flex-row sm:items-center sm:justify-between sm:p-5">
                   <div className="flex min-w-0 items-start gap-3">
+                    <input
+                      type="checkbox"
+                      aria-label={`Select ${share.recipientName} share history`}
+                      checked={selectedShareIds.includes(share.id)}
+                      disabled={shareHistoryBusy}
+                      onChange={() => toggleShareSelection(share.id)}
+                      className="mt-3 size-4 shrink-0 rounded accent-blue-600"
+                    />
                     <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-500">
                       <Mail className="size-4" />
                     </div>
@@ -915,6 +1077,16 @@ export default function MediaPortalView() {
                         Revoke access
                       </button>
                     )}
+                    <button
+                      type="button"
+                      disabled={shareHistoryBusy}
+                      aria-label={`Delete ${share.recipientName} from share history`}
+                      title="Remove from share history"
+                      className="inline-flex size-9 items-center justify-center rounded-xl text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-rose-100 disabled:cursor-wait disabled:opacity-50"
+                      onClick={() => clearShareHistory([share.id])}
+                    >
+                      <Trash2 className="size-4" />
+                    </button>
                   </div>
                 </article>
               ))}

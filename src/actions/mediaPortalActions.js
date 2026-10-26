@@ -55,6 +55,7 @@ export async function getMediaPortalPlayers() {
       publication: publication ? {
         isPublished: Boolean(publication.isPublished),
         consentConfirmedAt: publication.consentConfirmedAt?.toISOString() || null,
+        contactConsentConfirmedAt: publication.contactConsentConfirmedAt?.toISOString() || null,
       } : null,
     };
   });
@@ -81,6 +82,45 @@ export async function setMediaPublication(playerId, { isPublished, consentConfir
     playerId: String(publication.playerId),
     isPublished: Boolean(publication.isPublished),
     consentConfirmedAt: publication.consentConfirmedAt?.toISOString() || null,
+    contactConsentConfirmedAt: publication.contactConsentConfirmedAt?.toISOString() || null,
+  };
+}
+
+export async function setMediaContactConsent(playerId, confirmed) {
+  const admin = await requireRole("admin");
+  if (!playerId || typeof confirmed !== "boolean") {
+    throw new Error("A player and contact-sharing consent decision are required.");
+  }
+  await dbConnect();
+  const update = confirmed
+    ? {
+      $set: {
+        contactConsentConfirmedAt: new Date(),
+        contactConsentConfirmedBy: admin.id,
+        updatedAt: new Date(),
+      },
+      $setOnInsert: { playerId },
+    }
+    : {
+      $unset: {
+        contactConsentConfirmedAt: 1,
+        contactConsentConfirmedBy: 1,
+      },
+      $set: { updatedAt: new Date() },
+    };
+  const publication = await MediaPublication.findOneAndUpdate(
+    { playerId },
+    update,
+    { new: true, upsert: confirmed },
+  ).select("contactConsentConfirmedAt").lean();
+  console.info(JSON.stringify({
+    event: confirmed ? "media.contact_consent.confirmed" : "media.contact_consent.revoked",
+    playerId,
+    adminId: admin.id,
+  }));
+  return {
+    playerId: String(playerId),
+    contactConsentConfirmedAt: publication?.contactConsentConfirmedAt?.toISOString() || null,
   };
 }
 
@@ -139,6 +179,65 @@ export async function revokeMediaShare(shareId) {
   return share ? { id: String(share._id), status: share.status, revokedAt: share.revokedAt } : null;
 }
 
+export async function deleteMediaShareHistory(playerId, shareIds) {
+  const admin = await requireRole("admin");
+  if (!mongoose.Types.ObjectId.isValid(playerId)) throw new Error("Choose a valid player.");
+
+  const clearAll = shareIds === null;
+  if (
+    !clearAll
+    && (
+      !Array.isArray(shareIds)
+      || shareIds.length < 1
+      || shareIds.some((id) => !mongoose.Types.ObjectId.isValid(id))
+    )
+  ) {
+    throw new Error("Select one or more valid share history entries.");
+  }
+
+  await dbConnect();
+  const filter = {
+    playerId,
+    historyDeletedAt: { $exists: false },
+  };
+  if (!clearAll) {
+    const selectedIds = [...new Set(shareIds.map(String))];
+    filter._id = { $in: selectedIds };
+    const matchingShares = await MediaShare.find(filter).select("_id status").lean();
+    if (matchingShares.length !== selectedIds.length) {
+      throw new Error("Some selected share history entries are no longer available. Refresh and try again.");
+    }
+  }
+
+  const historyIds = clearAll
+    ? undefined
+    : filter._id.$in;
+  const now = new Date();
+  if (historyIds) {
+    await MediaShare.updateMany(
+      { playerId, _id: { $in: historyIds }, status: "ACTIVE", historyDeletedAt: { $exists: false } },
+      { $set: { status: "REVOKED", revokedAt: now } },
+    );
+  } else {
+    await MediaShare.updateMany(
+      { playerId, status: "ACTIVE", historyDeletedAt: { $exists: false } },
+      { $set: { status: "REVOKED", revokedAt: now } },
+    );
+  }
+
+  const result = await MediaShare.updateMany(filter, {
+    $set: { historyDeletedAt: now, historyDeletedBy: admin.id },
+  });
+  console.info(JSON.stringify({
+    event: "media.share.history_cleared",
+    playerId,
+    adminId: admin.id,
+    count: result.modifiedCount,
+    scope: clearAll ? "all" : "selected",
+  }));
+  return { deletedCount: result.modifiedCount };
+}
+
 export async function getMediaPortalLibrary(playerId) {
   await requireRole("admin");
   if (!mongoose.Types.ObjectId.isValid(playerId)) throw new Error("Choose a valid player.");
@@ -154,7 +253,7 @@ export async function getMediaPortalLibrary(playerId) {
   const [placements, playlists, shares] = await Promise.all([
     PlayerMedia.find({ playerId }).populate("assetId").sort({ displayOrder: 1, createdAt: -1 }).lean(),
     MediaPlaylist.find({ playerId }).sort({ displayOrder: 1, createdAt: 1 }).lean(),
-    MediaShare.find({ playerId }).sort({ sentAt: -1 }).lean(),
+    MediaShare.find({ playerId, historyDeletedAt: { $exists: false } }).sort({ sentAt: -1 }).lean(),
   ]);
   return {
     media: placements.map((item) => ({

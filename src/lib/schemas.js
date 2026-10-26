@@ -268,6 +268,8 @@ const mediaPublicationSchema = new mongoose.Schema({
   isPublished: { type: Boolean, default: false, index: true },
   consentConfirmedAt: { type: Date },
   consentConfirmedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  contactConsentConfirmedAt: { type: Date },
+  contactConsentConfirmedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   featuredMediaId: { type: mongoose.Schema.Types.ObjectId, ref: 'PlayerMedia' },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
@@ -282,6 +284,7 @@ const mediaAssetSchema = new mongoose.Schema({
   durationSeconds: { type: Number },
   width: { type: Number },
   height: { type: Number },
+  thumbnailFileName: { type: String, maxlength: 255 },
   uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   deletedAt: { type: Date },
   createdAt: { type: Date, default: Date.now },
@@ -330,6 +333,8 @@ const mediaShareSchema = new mongoose.Schema({
   revokedAt: { type: Date },
   firstOpenedAt: { type: Date },
   lastOpenedAt: { type: Date },
+  historyDeletedAt: { type: Date },
+  historyDeletedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   createdAt: { type: Date, default: Date.now },
 });
 

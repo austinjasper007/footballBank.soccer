@@ -2,6 +2,14 @@ import crypto from "node:crypto";
 
 export const PLAYBACK_TTL_SECONDS = 15 * 60;
 
+export function createBunnyThumbnailUrl(libraryId, videoId, thumbnailFileName) {
+  if (!libraryId || !videoId) return null;
+  const filename = typeof thumbnailFileName === "string" && thumbnailFileName.trim()
+    ? thumbnailFileName.trim()
+    : "thumbnail.jpg";
+  return `https://vz-${encodeURIComponent(libraryId)}.b-cdn.net/${encodeURIComponent(videoId)}/${encodeURIComponent(filename)}`;
+}
+
 export function createSignedEmbedUrl({ libraryId, tokenKey, videoId, shareExpiresAt, nowSeconds = Math.floor(Date.now() / 1000) }) {
   const shareExpiry = Math.floor(new Date(shareExpiresAt).getTime() / 1000);
   const expires = Math.min(nowSeconds + PLAYBACK_TTL_SECONDS, shareExpiry);

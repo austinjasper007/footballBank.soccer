@@ -1,6 +1,8 @@
 import crypto from "node:crypto";
 import dbConnect from "@/lib/db";
 import { Asset, Media, Player, Playlist, Publication, Share } from "@/lib/models";
+import { createBunnyThumbnailUrl } from "@/lib/playback";
+import { formatPlayerPhone } from "@/lib/phone";
 
 const hash = (value) => crypto.createHash("sha256").update(value).digest("hex");
 const playerFields = [
@@ -48,11 +50,15 @@ export async function getPortalProfile(token) {
   const publication = await Publication.findOne({
     playerId: share.playerId,
     isPublished: true,
-  }).lean();
+  }).select("contactConsentConfirmedAt").lean();
   if (!publication) return null;
 
+  const shareContactDetails = Boolean(publication.contactConsentConfirmedAt);
+  const selectedPlayerFields = shareContactDetails
+    ? `${playerFields} email phone phoneCountryCode`
+    : playerFields;
   const [player, placements, playlists] = await Promise.all([
-    Player.findById(share.playerId).select(playerFields).lean(),
+    Player.findById(share.playerId).select(selectedPlayerFields).lean(),
     Media.find({ playerId: share.playerId, isPublished: true })
       .sort({ displayOrder: 1, createdAt: -1 })
       .lean(),
@@ -80,6 +86,11 @@ export async function getPortalProfile(token) {
       playlistIds: (item.playlistIds || []).map(String),
       isFeatured: Boolean(item.isFeatured),
       bunnyVideoId: assetById.get(String(item.assetId)).bunnyVideoId,
+      thumbnailUrl: createBunnyThumbnailUrl(
+        process.env.BUNNY_STREAM_LIBRARY_ID || process.env.BUNNY_LIBRARY_ID,
+        assetById.get(String(item.assetId)).bunnyVideoId,
+        assetById.get(String(item.assetId)).thumbnailFileName,
+      ),
     }));
   if (!media.length) return null;
 
@@ -94,6 +105,10 @@ export async function getPortalProfile(token) {
       weight: player.weight,
       foot: player.foot,
       description: player.description,
+      contact: shareContactDetails ? {
+        email: player.email || "",
+        phone: formatPlayerPhone(player.phone, player.phoneCountryCode),
+      } : null,
       headshotUrl: player.headshotUrl,
       imageUrl: player.imageUrl || [],
       stats: player.stats,

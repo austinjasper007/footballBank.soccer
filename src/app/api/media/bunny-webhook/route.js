@@ -90,6 +90,9 @@ export async function POST(request) {
         durationSeconds: details.length,
         width: details.width,
         height: details.height,
+        ...(typeof details.thumbnailFileName === "string" && details.thumbnailFileName
+          ? { thumbnailFileName: details.thumbnailFileName }
+          : {}),
       };
       const isWithin1080p = (
         details.width <= 1920 && details.height <= 1080

@@ -29,7 +29,7 @@ export async function POST(req) {
     } else {
       return NextResponse.json(
         { error: result.error || "Failed to reset password" },
-        { status: 400 }
+        { status: result.code === "RATE_LIMITED" ? 429 : 400 }
       );
     }
   } catch (error) {
@@ -40,4 +40,3 @@ export async function POST(req) {
     );
   }
 }
-

@@ -1,6 +1,9 @@
 import { notFound } from "next/navigation";
 import { getPlayerById } from "@/actions/publicActions";
-import { getPlayerAccess } from "@/actions/resumeRequestActions";
+import {
+  getAuthorizedPlayerDetails,
+  getPlayerAccess,
+} from "@/actions/resumeRequestActions";
 import { trackPlayerProfileView } from "@/actions/viewTrackingActions";
 import { getDictionary } from "@/lib/dictionaries";
 import { generateMetadata as generateSEOMetadata } from "@/lib/seo";
@@ -34,6 +37,10 @@ export default async function PlayerPage({ params, searchParams }) {
   } catch {
     access = { profileAccess: false, cvAccess: false };
   }
+  const privateDetails = access.profileAccess
+    ? await getAuthorizedPlayerDetails(id)
+    : null;
+  const canViewDetails = Boolean(privateDetails);
 
   const publicPlayer = {
     id: player.id,
@@ -47,15 +54,14 @@ export default async function PlayerPage({ params, searchParams }) {
     videoPrimary: player.videoPrimary,
     videoAdditional: player.videoAdditional || [],
   };
-  const approvedPlayer =
-    access.profileAccess || access.cvAccess
-      ? { ...publicPlayer, ...player }
-      : publicPlayer;
+  const approvedPlayer = privateDetails
+    ? { ...publicPlayer, ...privateDetails }
+    : publicPlayer;
 
   return (
     <PlayerMedia
       player={approvedPlayer}
-      canViewDetails={access.profileAccess}
+      canViewDetails={canViewDetails}
       canDownloadResume={access.cvAccess}
       lang={lang}
       initialSection={tab === "media" ? "media" : "overview"}

@@ -29,13 +29,9 @@ const nextConfig = {
         hostname: "m.media-amazon.com",
       },
     ],
-    // Configure image qualities to avoid warnings
     qualities: [25, 50, 75, 90, 100],
-    // Add timeout and retry configurations
-    dangerouslyAllowSVG: true,
     contentDispositionType: 'attachment',
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
-    // Increase timeout for external images
     minimumCacheTTL: 60,
   },
   experimental: {

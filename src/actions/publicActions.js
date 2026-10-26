@@ -3,6 +3,51 @@
 import dbConnect from "@/lib/mongodb";
 import { Post, Player, HomepageHero } from "@/lib/schemas";
 
+const PUBLIC_PLAYER_CARD_FIELDS = [
+  "firstName",
+  "lastName",
+  "position",
+  "country",
+  "dob",
+  "currentClub",
+  "headshotUrl",
+  "imageUrl",
+  "featured",
+  "playerOfTheWeek",
+  "contractStatus",
+  "foot",
+].join(" ");
+
+const PUBLIC_PLAYER_PROFILE_FIELDS = [
+  "firstName",
+  "lastName",
+  "position",
+  "country",
+  "currentClub",
+  "headshotUrl",
+  "imageUrl",
+  "videoPrimary",
+  "videoAdditional",
+  "featured",
+  "playerOfTheWeek",
+  "contractStatus",
+  "foot",
+].join(" ");
+
+const calculateAge = (dateOfBirth, now = new Date()) => {
+  if (typeof dateOfBirth !== "string" || !dateOfBirth.trim()) return null;
+  const birthDate = new Date(dateOfBirth);
+  if (Number.isNaN(birthDate.getTime()) || birthDate > now) return null;
+  let age = now.getUTCFullYear() - birthDate.getUTCFullYear();
+  if (
+    now.getUTCMonth() < birthDate.getUTCMonth() ||
+    (now.getUTCMonth() === birthDate.getUTCMonth() && now.getUTCDate() < birthDate.getUTCDate())
+  ) {
+    age -= 1;
+  }
+  return age;
+};
+
 // 🔧 Helper: normalize MongoDB docs to plain serializable objects
 const normalize = (doc) => {
   if (!doc) return null;
@@ -100,8 +145,14 @@ export async function getPostById(id) {
 export async function getAllPlayers() {
   await dbConnect();
   try {
-    const players = await Player.find({}).lean().sort({ createdAt: -1 });
-    return players.map(normalize);
+    const players = await Player.find({})
+      .select(PUBLIC_PLAYER_CARD_FIELDS)
+      .lean()
+      .sort({ createdAt: -1 });
+    return players.map((player) => {
+      const { dob, ...publicPlayer } = normalize(player);
+      return { ...publicPlayer, age: calculateAge(dob) };
+    });
   } catch (error) {
     console.error("Error fetching players:", error);
     return [];
@@ -111,7 +162,10 @@ export async function getAllPlayers() {
 export async function getFeaturedPlayers() {
   await dbConnect();
   try {
-    const players = await Player.find({ featured: true }).lean().sort({ createdAt: -1 });
+    const players = await Player.find({ featured: true })
+      .select(PUBLIC_PLAYER_CARD_FIELDS.replace(" dob", ""))
+      .lean()
+      .sort({ createdAt: -1 });
     return players.map(normalize);
   } catch (error) {
     console.error("Error fetching featured players:", error);
@@ -149,7 +203,7 @@ export async function getHomepageHeroConfig() {
 export async function getPlayerById(id) {
   await dbConnect();
   try {
-    const player = await Player.findById(id).lean();
+    const player = await Player.findById(id).select(PUBLIC_PLAYER_PROFILE_FIELDS).lean();
     return player ? normalize(player) : null;
   } catch (error) {
     console.error("Error fetching player by ID:", error);

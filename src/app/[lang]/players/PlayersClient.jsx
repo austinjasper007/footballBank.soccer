@@ -29,11 +29,7 @@ export default function PlayersClient({ lang, dict }) {
   const perPage = 6;
 
   const getPlayerAge = (player) => {
-    if (!player?.dob) return null;
-    const birthDate = new Date(player.dob);
-    if (Number.isNaN(birthDate.getTime())) return null;
-    const diff = new Date() - birthDate;
-    return Math.abs(new Date(diff).getUTCFullYear() - 1970);
+    return Number.isInteger(player?.age) ? player.age : null;
   };
 
   const normalizeStatus = (value) => {
@@ -78,7 +74,7 @@ export default function PlayersClient({ lang, dict }) {
     const query = search.trim().toLowerCase();
     const matchesSearch = !query
       ? true
-      : [fullName, p.country, p.position, p.email].some((value) =>
+      : [fullName, p.country, p.position].some((value) =>
           (value || "").toLowerCase().includes(query),
         );
     const matchesCountry = selectedCountry

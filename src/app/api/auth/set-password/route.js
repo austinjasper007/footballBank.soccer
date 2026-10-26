@@ -1,25 +1,30 @@
 import { NextResponse } from "next/server";
-import { setUserPassword } from "@/actions/authActions";
+import { resetPasswordWithOTP } from "@/actions/authActions";
 
 export async function POST(req) {
   try {
-    const { email, password } = await req.json();
+    const body = await req.json();
+    const { email, otp, newPassword } = body || {};
 
-    if (!email || !password) {
+    if (
+      typeof email !== "string" ||
+      typeof otp !== "string" ||
+      typeof newPassword !== "string"
+    ) {
       return NextResponse.json(
-        { error: "Email and password are required" },
+        { error: "Email, verification code, and new password are required" },
         { status: 400 }
       );
     }
 
-    if (password.length < 6) {
+    if (newPassword.length < 6 || newPassword.length > 128) {
       return NextResponse.json(
-        { error: "Password must be at least 6 characters long" },
+        { error: "Password must be between 6 and 128 characters long" },
         { status: 400 }
       );
     }
 
-    const result = await setUserPassword(email, password);
+    const result = await resetPasswordWithOTP(email, otp, newPassword);
 
     if (result.success) {
       return NextResponse.json({ 
@@ -29,7 +34,7 @@ export async function POST(req) {
     } else {
       return NextResponse.json(
         { error: result.error || "Failed to set password" },
-        { status: 400 }
+        { status: result.code === "RATE_LIMITED" ? 429 : 400 }
       );
     }
   } catch (error) {
@@ -40,4 +45,3 @@ export async function POST(req) {
     );
   }
 }
-

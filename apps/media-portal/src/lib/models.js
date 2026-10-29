@@ -12,3 +12,23 @@ export const Share = model("PortalShare", new mongoose.Schema({ tokenHash: Strin
 export const Media = model("PortalMedia", new mongoose.Schema({ playerId: id, assetId: id, category: String, title: String, description: String, season: String, competition: String, matchDate: Date, playerClub: String, opponent: String, playlistIds: [id], isPublished: Boolean, isFeatured: Boolean, displayOrder: Number }, { strict: false }), "playermedias");
 export const Asset = model("PortalAsset", new mongoose.Schema({ bunnyVideoId: String, status: String, thumbnailFileName: String }, { strict: false }), "mediaassets");
 export const Playlist = model("PortalPlaylist", new mongoose.Schema({ playerId: id, title: String, displayOrder: Number }, { strict: false }), "mediaplaylists");
+const trackingEventSchema = new mongoose.Schema({
+  shareId: { type: id, required: true },
+  playerId: { type: id, required: true },
+  mediaId: { type: String, default: "" },
+  eventType: { type: String, enum: ["PAGE_VIEW", "VIDEO_PLAY"], required: true },
+  viewerSessionHash: { type: String, required: true },
+  notificationStatus: {
+    type: String,
+    enum: ["PENDING", "SENDING", "SENT", "FAILED"],
+    default: "PENDING",
+  },
+  notificationLockUntil: Date,
+  notificationSentAt: Date,
+  notificationError: String,
+}, { timestamps: true });
+trackingEventSchema.index(
+  { shareId: 1, viewerSessionHash: 1, eventType: 1, mediaId: 1 },
+  { unique: true },
+);
+export const TrackingEvent = model("PortalTrackingEvent", trackingEventSchema, "mediatrackingevents");

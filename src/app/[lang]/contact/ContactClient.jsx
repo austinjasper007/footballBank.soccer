@@ -24,9 +24,12 @@ class EmailError extends Error {
   }
 }
 
-export default function ContactClient({ lang = "en", dict }) {
+export default function ContactClient({ lang = "en", dict, interestedPlayer = "" }) {
   const { toast } = useToast();
   const [status, setStatus] = useState("idle");
+  const initialInterestMessage = interestedPlayer
+    ? `I'm interested in learning more about ${interestedPlayer}'s player profile. Please contact me with next steps.`
+    : undefined;
 
   /**
    * Handles the contact form submission, sends form data via emailActions,
@@ -218,6 +221,7 @@ export default function ContactClient({ lang = "en", dict }) {
 
                 <Select
                   name="subject"
+                  defaultValue={interestedPlayer ? "Talent / Scouting" : undefined}
                   className="w-full bg-primary-card border border-divider rounded-lg px-4 py-3"
                 >
                   <SelectTrigger>
@@ -261,7 +265,8 @@ export default function ContactClient({ lang = "en", dict }) {
                   name="message"
                   required
                   rows={6}
-                    className="w-full resize-none border border-divider bg-primary-surface px-4 py-3 outline-none transition-colors focus:border-primary-action focus:ring-2 focus:ring-primary-action/20"
+                  defaultValue={initialInterestMessage}
+                  className="w-full resize-none border border-divider bg-primary-surface px-4 py-3 outline-none transition-colors focus:border-primary-action focus:ring-2 focus:ring-primary-action/20"
                   placeholder={
                     dict?.contact?.messagePlaceholder ||
                     "Tell us about your goals, experience, and how we can help you..."

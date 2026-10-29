@@ -12,7 +12,9 @@
     "libphonenumber-js": "^1.12.36",
     "mongoose": "^8.19.0",
     "next": "16.4.1",
+    "player.js": "^0.1.0",
     "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "resend": "^4.8.0"
   }
 }

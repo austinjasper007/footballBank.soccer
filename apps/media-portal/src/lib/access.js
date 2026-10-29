@@ -95,7 +95,7 @@ function sanitizePortalProfile(value) {
   };
 }
 
-export async function getPortalProfile(token) {
+export async function getActivePortalShare(token) {
   if (!/^[A-Za-z0-9_-]{43}$/.test(token)) return null;
   await dbConnect();
   const now = new Date();
@@ -115,7 +115,12 @@ export async function getPortalProfile(token) {
     { _id: existingShare._id, status: "ACTIVE", expiresAt: { $gt: now } },
     { $min: { firstOpenedAt: now }, $set: { lastOpenedAt: now } },
     { new: true },
-  ).select("playerId expiresAt").lean();
+  ).select("_id playerId expiresAt").lean();
+  return share || null;
+}
+
+export async function getPortalProfile(token) {
+  const share = await getActivePortalShare(token);
   if (!share) return null;
 
   const publication = await Publication.findOne({

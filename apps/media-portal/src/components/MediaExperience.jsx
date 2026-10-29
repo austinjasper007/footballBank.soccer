@@ -5,6 +5,7 @@ import Link from "next/link";
 import PortalModal from "@/components/PortalModal";
 
 const PAGE_SIZE = 9;
+const fallbackViewerSessions = new Map();
 const NAV_ITEMS = [
   { id: "media", label: "Media" },
   { id: "profile", label: "Profile" },
@@ -71,9 +72,56 @@ function Pagination({ page, pageCount, onPageChange }) {
   );
 }
 
+function getViewerSessionId(token) {
+  const storageKey = `footballbank-media-session:${token}`;
+  let sessionId;
+
+  try {
+    sessionId = sessionStorage.getItem(storageKey);
+    if (!sessionId) {
+      sessionId = crypto.randomUUID();
+      sessionStorage.setItem(storageKey, sessionId);
+    }
+  } catch (error) {
+    console.warn("Browser session storage is unavailable for media activity tracking.", error);
+    sessionId = fallbackViewerSessions.get(storageKey);
+    if (!sessionId) {
+      sessionId = crypto.randomUUID();
+      fallbackViewerSessions.set(storageKey, sessionId);
+    }
+  }
+
+  return sessionId;
+}
+
+function reportPortalActivity(token, eventType, sessionId, mediaId = "") {
+  if (!sessionId) return;
+  async function sendActivity(attempt = 0) {
+    const response = await fetch(`/api/p/${encodeURIComponent(token)}/activity`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ eventType, sessionId, ...(mediaId ? { mediaId } : {}) }),
+      cache: "no-store",
+      keepalive: true,
+    });
+    if (!response.ok) {
+      const result = await response.json().catch(() => ({}));
+      if (response.status === 503 && attempt === 0) return sendActivity(1);
+      throw new Error(result.error || "Could not record media portal activity.");
+    }
+  }
+
+  sendActivity().catch((error) => {
+    console.error("Could not record media portal activity.", error);
+  });
+}
+
 function VideoGallery({
   items,
   token,
+  onVideoPlay,
+  showInterestCta = false,
+  contactHref = "",
   photos = [],
   initialMediaType = "videos",
   initialCollection = "ALL",
@@ -166,7 +214,19 @@ function VideoGallery({
           <h2>Player media</h2>
           <p className="panel-description">Browse match footage, highlights, and player photos.</p>
         </div>
-        <span className="media-total">{items.length + photos.length} items</span>
+        <div className="media-toolbar-actions">
+          {showInterestCta && (
+            <a
+              className="player-interest-link"
+              href={contactHref}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Interested in this player? Contact our team
+            </a>
+          )}
+          <span className="media-total">{items.length + photos.length} items</span>
+        </div>
       </div>
 
       <div className="media-controls">
@@ -213,6 +273,7 @@ function VideoGallery({
           src={playbackUrl}
           error={playbackError}
           loading={playbackLoading}
+          onVideoPlay={() => onVideoPlay?.(selectedVideo.id)}
           description={[selectedVideo.season, selectedVideo.competition, selectedVideo.opponent]
             .filter(Boolean)
             .join(" · ")}
@@ -550,7 +611,7 @@ function ProfileTab({ player }) {
   );
 }
 
-function PlaylistTab({ playlists, token, galleryOptions }) {
+function PlaylistTab({ playlists, token, onVideoPlay, galleryOptions }) {
   return (
     <div className="playlist-content">
       {playlists.map((playlist) => (
@@ -559,7 +620,13 @@ function PlaylistTab({ playlists, token, galleryOptions }) {
             <p className="eyebrow">Curated collection</p>
             <h2>{playlist.title}</h2>
           </div>
-          <VideoGallery items={playlist.media} token={token} view="playlists" {...galleryOptions} />
+          <VideoGallery
+            items={playlist.media}
+            token={token}
+            onVideoPlay={onVideoPlay}
+            view="playlists"
+            {...galleryOptions}
+          />
         </section>
       ))}
     </div>
@@ -576,6 +643,7 @@ export default function MediaExperience({
   initialVideoId,
   initialPhotoIndex,
 }) {
+  const [viewerSessionId, setViewerSessionId] = useState("");
   const player = data.player;
   const playerName = [player.firstName, player.lastName].filter(Boolean).join(" ");
   const portrait = player.headshotUrl || player.imageUrl?.[0];
@@ -593,6 +661,21 @@ export default function MediaExperience({
     initialVideoId,
     initialPhotoIndex,
   };
+  const contactUrl = new URL("https://footballbank.soccer/en/contact");
+  if (playerName) contactUrl.searchParams.set("player", playerName);
+
+  useEffect(() => {
+    const sessionId = getViewerSessionId(token);
+    setViewerSessionId(sessionId);
+  }, [token]);
+
+  useEffect(() => {
+    if (viewerSessionId) reportPortalActivity(token, "PAGE_VIEW", viewerSessionId);
+  }, [token, viewerSessionId]);
+
+  function reportVideoPlay(mediaId) {
+    reportPortalActivity(token, "VIDEO_PLAY", viewerSessionId, mediaId);
+  }
 
   return (
     <main className="portal-shell">
@@ -651,6 +734,9 @@ export default function MediaExperience({
           <VideoGallery
             items={data.media}
             token={token}
+            onVideoPlay={reportVideoPlay}
+            showInterestCta
+            contactHref={contactUrl.toString()}
             photos={photos}
             {...galleryState}
           />
@@ -660,6 +746,7 @@ export default function MediaExperience({
           <PlaylistTab
             playlists={playlists}
             token={token}
+            onVideoPlay={reportVideoPlay}
             galleryOptions={galleryState}
           />
         )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function PortalModal({
   type,
@@ -10,13 +10,67 @@ export default function PortalModal({
   error,
   loading = false,
   onClose,
+  onVideoPlay,
 }) {
   const dialogRef = useRef(null);
+  const iframeRef = useRef(null);
+  const handlersRef = useRef({ onVideoPlay });
+  const [playerJs, setPlayerJs] = useState(null);
+  const [playerError, setPlayerError] = useState("");
 
   useEffect(() => {
     const dialog = dialogRef.current;
     if (dialog && !dialog.open) dialog.showModal();
   }, []);
+
+  useEffect(() => {
+    handlersRef.current = { onVideoPlay };
+  });
+
+  useEffect(() => {
+    if (type !== "video" || !src) return undefined;
+    let active = true;
+    setPlayerError("");
+    import("player.js")
+      .then((module) => {
+        if (active) setPlayerJs(module.default);
+      })
+      .catch((loadError) => {
+        console.error("Could not load Bunny's playback controls.", loadError);
+        if (active) setPlayerError("The secure video player could not be loaded. Please try again.");
+      });
+    return () => {
+      active = false;
+    };
+  }, [type, src]);
+
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    if (type !== "video" || !src || !playerJs || !iframe) return undefined;
+
+    let onMessage = () => {};
+    const addEvent = playerJs.addEvent;
+    playerJs.addEvent = (element, eventType, handler) => {
+      const wrappedHandler = (event) => handler(event);
+      onMessage = wrappedHandler;
+      addEvent(element, eventType, wrappedHandler);
+    };
+
+    let player;
+    try {
+      player = new playerJs.Player(iframe);
+    } catch (error) {
+      console.error("Could not initialize Bunny's playback controls.", error);
+      setPlayerError("The secure video player could not be initialized. Please try again.");
+    } finally {
+      playerJs.addEvent = addEvent;
+    }
+
+    if (!player) return undefined;
+    player.on("play", () => handlersRef.current.onVideoPlay?.());
+
+    return () => window.removeEventListener("message", onMessage);
+  }, [playerJs, src, type]);
 
   return (
     <dialog
@@ -54,13 +108,21 @@ export default function PortalModal({
             loading ? (
               <div className="viewer-modal-error" role="status">Preparing secure playback…</div>
             ) : src ? (
-              <iframe
-                src={src}
-                title={title}
-                allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen"
-                allowFullScreen
-                referrerPolicy="origin"
-              />
+              playerError ? (
+                <div className="viewer-modal-error" role="alert">{playerError}</div>
+              ) : playerJs ? (
+                <iframe
+                  key={src}
+                  ref={iframeRef}
+                  src={src}
+                  title={title}
+                  allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen"
+                  allowFullScreen
+                  referrerPolicy="strict-origin-when-cross-origin"
+                />
+              ) : (
+                <div className="viewer-modal-error" role="status">Loading secure video player…</div>
+              )
             ) : (
               <div className="viewer-modal-error" role="alert">
                 {error || "Secure video playback could not be authorized. Please try again."}

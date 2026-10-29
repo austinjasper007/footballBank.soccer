@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  allowedDevOrigins: ["cardboard-sitcom-expiring.ngrok-free.dev"],
   serverExternalPackages: ["pdfkit"],
      images: {
     remotePatterns: [
@@ -28,20 +29,16 @@ const nextConfig = {
         hostname: "m.media-amazon.com",
       },
     ],
-    // Configure image qualities to avoid warnings
     qualities: [25, 50, 75, 90, 100],
-    // Add timeout and retry configurations
-    dangerouslyAllowSVG: true,
     contentDispositionType: 'attachment',
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
-    // Increase timeout for external images
     minimumCacheTTL: 60,
   },
   experimental: {
     serverActions: {
       // Add properties as needed, e.g.
       bodySizeLimit: '10MB', // or some other valid SizeLimit value
-      allowedOrigins: ['https://localhost:3000', 'https://www.footballbank.soccer'], // or some other valid string[]
+      allowedOrigins: ['https://localhost:3000', 'https://www.footballbank.soccer','cardboard-sitcom-expiring.ngrok-free.dev'], // or some other valid string[]
     },
   },
   // Next.js 16 builds with Turbopack by default. An empty config acknowledges

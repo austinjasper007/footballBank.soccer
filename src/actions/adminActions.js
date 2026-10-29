@@ -6,7 +6,7 @@ import dbConnect from "@/lib/mongodb";
 import mongoose from "mongoose";
 import { sendPlayerSubmissionDecisionEmail, sendWelcomeEmail } from "@/lib/email";
 import { deletePlayerMedia } from "@/lib/firebaseStorageCleanup";
-import { requireRole } from "@/lib/oauth";
+import { requireAuth, requireRole } from "@/lib/oauth";
 
 // 🔧 Helper: safely convert any Mongoose doc(s) to plain JSON and convert _id to id
 const toPlain = (data) => {
@@ -34,9 +34,10 @@ const toPlain = (data) => {
 
 // USERS
 export const getAllUsers = async () => {
+  await requireRole("admin");
   await dbConnect();
   try {
-    const users = await User.find({}).lean().sort({ createdAt: -1 });
+    const users = await User.find({}).select("-password").lean().sort({ createdAt: -1 });
     // console.log("Raw users from DB:", users.slice(0, 1)); // Log first user to see structure
     const convertedUsers = toPlain(users);
     // console.log("Converted users:", convertedUsers.slice(0, 1)); // Log first user after conversion
@@ -48,9 +49,13 @@ export const getAllUsers = async () => {
 };
 
 export const getUserById = async (id) => {
+  const requester = await requireAuth();
+  if (requester.role !== "admin" && requester.id !== String(id)) {
+    throw new Error("You can only access your own account");
+  }
   await dbConnect();
   try {
-    const user = await User.findById(id).lean();
+    const user = await User.findById(id).select("-password").lean();
     return toPlain(user);
   } catch (err) {
     console.error("Error fetching user by ID:", err);
@@ -59,6 +64,7 @@ export const getUserById = async (id) => {
 };
 
 export async function createUser(data) {
+  await requireRole("admin");
   await dbConnect();
   try {
     const existingUser = await User.findOne({ email: data.email });
@@ -71,7 +77,9 @@ export async function createUser(data) {
     } catch (welcomeError) {
       console.error("Admin-created user welcome email failed:", welcomeError);
     }
-    return toPlain(createdUser);
+    const safeUser = createdUser.toObject();
+    delete safeUser.password;
+    return toPlain(safeUser);
   } catch (err) {
     console.error("Error creating user:", err);
     return err;
@@ -79,6 +87,7 @@ export async function createUser(data) {
 }
 
 export async function updateUser(userId, data) {
+  await requireRole("admin");
   await dbConnect();
   try {
     const { id, createdAt, updatedAt, password: _password, ...updateData } = data;
@@ -91,7 +100,9 @@ export async function updateUser(userId, data) {
       if (existingUser) throw new Error("User with this email already exists");
     }
 
-    const updatedUser = await User.findByIdAndUpdate(userId, updateData, { new: true });
+    const updatedUser = await User.findByIdAndUpdate(userId, updateData, { new: true })
+      .select("-password")
+      .lean();
     revalidatePath("/admin/users");
     return toPlain(updatedUser);
   } catch (err) {
@@ -101,6 +112,7 @@ export async function updateUser(userId, data) {
 }
 
 export async function deleteUser(id) {
+  await requireRole("admin");
   await dbConnect();
   try {
     // console.log("Delete user - ID received:", id, "Type:", typeof id);
@@ -167,6 +179,7 @@ export async function deleteProduct(id) {
 
 // PLAYERS
 export async function getAllPlayers() {
+  await requireRole("admin");
   await dbConnect();
   try {
     const players = await Player.find({}).lean().sort({ createdAt: -1 });
@@ -178,6 +191,7 @@ export async function getAllPlayers() {
 }
 
 export async function createPlayer(data) {
+  await requireRole("admin");
   await dbConnect();
   try {
     const normalizedEmail = data.email?.trim().toLowerCase();
@@ -238,6 +252,7 @@ export async function createPlayer(data) {
 }
 
 export async function updatePlayer(playerId, data) {
+  await requireRole("admin");
   await dbConnect();
   try {
     const { id, createdAt, updatedAt, ...updateData } = data;
@@ -250,6 +265,7 @@ export async function updatePlayer(playerId, data) {
 }
 
 export async function deletePlayer(id) {
+  await requireRole("admin");
   await dbConnect();
   try {
     const player = await Player.findById(id).select("email").lean();
@@ -282,6 +298,7 @@ export async function getAllPosts() {
 }
 
 export async function createPost(data) {
+  await requireRole("editor");
   await dbConnect();
   try {
     const post = await Post.create({
@@ -296,6 +313,7 @@ export async function createPost(data) {
 }
 
 export async function updatePost(postId, data) {
+  await requireRole("editor");
   await dbConnect();
   try {
     const { id, createdAt, updatedAt, ...updateData } = data;
@@ -317,6 +335,7 @@ export async function updatePost(postId, data) {
 }
 
 export async function deletePost(id) {
+  await requireRole("editor");
   await dbConnect();
   try {
     await Post.findByIdAndDelete(id);
@@ -331,6 +350,7 @@ export async function deletePost(id) {
 
 // SUBMISSIONS
 export async function getAllSubmissions() {
+  await requireRole("admin");
   await dbConnect();
   try {
     const submissions = await Submission.find({}).lean().sort({ submittedAt: -1 });
@@ -347,6 +367,7 @@ export async function getAllSubmissions() {
 }
 
 export async function getSubmissionsById(id) {
+  await requireRole("admin");
   await dbConnect();
   try {
     const submission = await Submission.findById(id).lean();
@@ -358,6 +379,7 @@ export async function getSubmissionsById(id) {
 }
 
 export async function approveSubmission(submissionId) {
+  await requireRole("admin");
   await dbConnect();
   try {
     const approvedSubmission = await Submission.findByIdAndUpdate(
@@ -405,6 +427,7 @@ export async function approveSubmission(submissionId) {
 }
 
 export async function rejectSubmission(id, reason) {
+  await requireRole("admin");
   await dbConnect();
   try {
     const rejected = await Submission.findByIdAndUpdate(
@@ -434,6 +457,7 @@ export async function rejectSubmission(id, reason) {
 }
 
 export async function deleteSubmission(id) {
+  await requireRole("admin");
   await dbConnect();
   try {
     const deleted = await Submission.findByIdAndDelete(id);
@@ -468,6 +492,7 @@ export async function getAgentInfo() {
 }
 
 export async function updateAgentInfo(formData) {
+  await requireRole("admin");
   await dbConnect();
   try {
     const { name, bio, credentials, location, profilePhoto } = Object.fromEntries(formData);

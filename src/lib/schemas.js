@@ -260,6 +260,85 @@ const homepageHeroSchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now },
 });
 
+// Media portal records are intentionally separate from Player. The main player
+// profile remains the source of truth, while these documents model controlled
+// publication, reusable Bunny assets, and recipient-specific access.
+const mediaPublicationSchema = new mongoose.Schema({
+  playerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Player', required: true, unique: true, index: true },
+  isPublished: { type: Boolean, default: false, index: true },
+  consentConfirmedAt: { type: Date },
+  consentConfirmedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  contactConsentConfirmedAt: { type: Date },
+  contactConsentConfirmedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  playerProfile: { type: mongoose.Schema.Types.Mixed, default: {} },
+  featuredMediaId: { type: mongoose.Schema.Types.ObjectId, ref: 'PlayerMedia' },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
+});
+
+const mediaAssetSchema = new mongoose.Schema({
+  bunnyVideoId: { type: String, required: true, unique: true, index: true },
+  status: { type: String, enum: ['UPLOADING', 'PROCESSING', 'READY', 'FAILED', 'DELETED'], default: 'UPLOADING', index: true },
+  originalFileName: { type: String, maxlength: 255 },
+  uploadFileSize: { type: Number },
+  uploadMimeType: { type: String, maxlength: 100 },
+  durationSeconds: { type: Number },
+  width: { type: Number },
+  height: { type: Number },
+  thumbnailFileName: { type: String, maxlength: 255 },
+  uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  deletedAt: { type: Date },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
+});
+
+const playerMediaSchema = new mongoose.Schema({
+  playerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Player', required: true, index: true },
+  assetId: { type: mongoose.Schema.Types.ObjectId, ref: 'MediaAsset', required: true, index: true },
+  category: { type: String, enum: ['FULL_MATCH', 'HIGHLIGHT'], required: true },
+  title: { type: String, required: true, trim: true, maxlength: 180 },
+  description: { type: String, maxlength: 2000 },
+  season: { type: String, maxlength: 80 },
+  competition: { type: String, maxlength: 120 },
+  matchDate: { type: Date },
+  playerClub: { type: String, maxlength: 120 },
+  opponent: { type: String, maxlength: 120 },
+  playlistIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'MediaPlaylist' }],
+  isPublished: { type: Boolean, default: false, index: true },
+  isFeatured: { type: Boolean, default: false },
+  displayOrder: { type: Number, default: 0 },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
+});
+playerMediaSchema.index({ playerId: 1, assetId: 1 }, { unique: true });
+
+const mediaPlaylistSchema = new mongoose.Schema({
+  playerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Player', required: true, index: true },
+  title: { type: String, required: true, trim: true, maxlength: 120 },
+  displayOrder: { type: Number, default: 0 },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
+});
+
+const mediaShareSchema = new mongoose.Schema({
+  tokenHash: { type: String, required: true, unique: true, index: true },
+  playerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Player', required: true, index: true },
+  recipientName: { type: String, required: true, maxlength: 160 },
+  recipientEmail: { type: String, required: true, maxlength: 320 },
+  organization: { type: String, maxlength: 160 },
+  customMessage: { type: String, maxlength: 2000 },
+  sentBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  sentAt: { type: Date, required: true },
+  expiresAt: { type: Date, required: true, index: true },
+  status: { type: String, enum: ['ACTIVE', 'REVOKED', 'EXPIRED'], default: 'ACTIVE', index: true },
+  revokedAt: { type: Date },
+  firstOpenedAt: { type: Date },
+  lastOpenedAt: { type: Date },
+  historyDeletedAt: { type: Date },
+  historyDeletedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  createdAt: { type: Date, default: Date.now },
+});
+
 // Create models with proper error handling - use existing collection names from Prisma
 // Guard against stale cached models: Next.js hot-reload can keep a previously
 // compiled schema alive in mongoose.models, silently dropping newly added fields
@@ -288,3 +367,8 @@ export const ResumeRequest = defineModel('ResumeRequest', resumeRequestSchema);
 export const PlayerProfileView = defineModel('PlayerProfileView', playerProfileViewSchema);
 export const Agent = defineModel('Agent', agentSchema);
 export const HomepageHero = defineModel('HomepageHero', homepageHeroSchema);
+export const MediaPublication = defineModel('MediaPublication', mediaPublicationSchema);
+export const MediaAsset = defineModel('MediaAsset', mediaAssetSchema);
+export const PlayerMedia = defineModel('PlayerMedia', playerMediaSchema);
+export const MediaPlaylist = defineModel('MediaPlaylist', mediaPlaylistSchema);
+export const MediaShare = defineModel('MediaShare', mediaShareSchema);

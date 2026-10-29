@@ -9,6 +9,7 @@ import jwt from "jsonwebtoken";
 import { cookies } from "next/headers";
 import dbConnect from "@/lib/mongodb";
 import { z } from "zod";
+import { randomInt } from "node:crypto";
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
@@ -32,7 +33,7 @@ const validationError = (error) => error instanceof z.ZodError ? error.issues[0]
 /** ---------- Helpers ---------- **/
 
 // Generate a 6-digit OTP
-const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
+const generateOTP = () => randomInt(100000, 1000000).toString();
 
 // Generate session JWT with user data embedded
 const generateSessionToken = (user) =>
@@ -131,32 +132,6 @@ export async function loginWithPassword(email, password) {
   }
 }
 
-// Set password for user (during signup or password setup)
-export async function setUserPassword(email, password) {
-  await dbConnect();
-  try {
-    const user = await User.findOne({ email });
-    if (!user) {
-      return { success: false, error: "User not found" };
-    }
-
-    // Hash password
-    const bcrypt = require('bcryptjs');
-    const hashedPassword = await bcrypt.hash(password, 12);
-
-    // Update user with password
-    await User.findByIdAndUpdate(user._id, {
-      password: hashedPassword,
-      updatedAt: new Date()
-    });
-
-    return { success: true, message: "Password set successfully" };
-  } catch (error) {
-    console.error("Error setting password:", error);
-    return { success: false, error: "Failed to set password. Please try again." };
-  }
-}
-
 // Change password for authenticated user
 export async function changePassword(userId, currentPassword, newPassword) {
   await dbConnect();
@@ -201,29 +176,46 @@ export async function signupWithPassword(email, firstName, lastName, password, a
 
 // Password recovery - send reset OTP
 export async function sendPasswordResetOTP(email) {
-  await dbConnect();
   try {
+    const normalizedEmail = normalizeEmail(email);
+    await dbConnect();
     await cleanExpiredOTPs();
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: normalizedEmail }).select("_id email firstName");
     if (!user) return { success: false, error: "No account found with this email address" };
 
+    const now = new Date();
+    const recentOtp = await OtpToken.findOne({
+      email: normalizedEmail,
+      type: "PASSWORD_RESET",
+      createdAt: { $gt: new Date(now.getTime() - OTP_RESEND_WINDOW_MS) },
+    }).select("_id").lean();
+    if (recentOtp) {
+      return { success: false, error: "Please wait before requesting another reset code.", code: "RATE_LIMITED" };
+    }
+
     const otp = generateOTP();
-    const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
+    const expiresAt = new Date(now.getTime() + OTP_EXPIRY_MINUTES * 60 * 1000);
+    await OtpToken.updateMany(
+      { email: normalizedEmail, type: "PASSWORD_RESET", status: "PENDING" },
+      { $set: { status: "FAILED" } },
+    );
 
     await OtpToken.create({
       userId: user._id,
-      email,
+      email: normalizedEmail,
       token: otp,
       type: "PASSWORD_RESET",
       status: "PENDING",
       expiresAt,
     });
 
-    await sendOTPEmail(email, otp, "reset");
+    await sendOTPEmail(normalizedEmail, otp, "reset");
 
     return { success: true, message: "Password reset code sent to your email" };
   } catch (error) {
+    const message = validationError(error);
+    if (message) return { success: false, error: message };
     console.error("Error sending password reset OTP:", error);
     return { success: false, error: "Failed to send reset code. Please try again." };
   }
@@ -231,26 +223,70 @@ export async function sendPasswordResetOTP(email) {
 
 // Reset password with OTP
 export async function resetPasswordWithOTP(email, otp, newPassword) {
-  await dbConnect();
   try {
+    const normalizedEmail = normalizeEmail(email);
+    otpSchema.parse(otp);
+    passwordSchema.parse(newPassword);
+    await dbConnect();
+    const now = new Date();
     const otpRecord = await OtpToken.findOne({
-      email,
-      token: otp,
+      email: normalizedEmail,
       type: "PASSWORD_RESET",
       status: "PENDING",
-      expiresAt: { $gt: new Date() },
-    });
+      expiresAt: { $gt: now },
+    }).sort({ createdAt: -1 }).select("_id userId token attempts").lean();
     if (!otpRecord) return { success: false, error: "Invalid or expired verification code" };
+    if ((otpRecord.attempts || 0) >= MAX_OTP_ATTEMPTS) {
+      await OtpToken.updateOne(
+        { _id: otpRecord._id, status: "PENDING" },
+        { $set: { status: "FAILED" } },
+      );
+      return { success: false, error: "Invalid or expired verification code" };
+    }
+    if (otpRecord.token !== otp) {
+      const failedAttempt = await OtpToken.findOneAndUpdate(
+        {
+          _id: otpRecord._id,
+          status: "PENDING",
+          expiresAt: { $gt: now },
+          attempts: { $lt: MAX_OTP_ATTEMPTS },
+        },
+        { $inc: { attempts: 1 } },
+        { new: true },
+      ).select("attempts").lean();
+      if (failedAttempt?.attempts >= MAX_OTP_ATTEMPTS) {
+        await OtpToken.updateOne(
+          { _id: otpRecord._id, status: "PENDING" },
+          { $set: { status: "FAILED" } },
+        );
+      }
+      return { success: false, error: "Invalid or expired verification code" };
+    }
 
     const hashed = await bcrypt.hash(newPassword, 12);
-    await User.findByIdAndUpdate(otpRecord.userId, { password: hashed, updatedAt: new Date() });
-
-    otpRecord.status = "VERIFIED";
-    otpRecord.verifiedAt = new Date();
-    await otpRecord.save();
+    const consumedOtp = await OtpToken.updateOne(
+      {
+        _id: otpRecord._id,
+        status: "PENDING",
+        expiresAt: { $gt: now },
+        attempts: { $lt: MAX_OTP_ATTEMPTS },
+      },
+      { $set: { status: "VERIFIED", verifiedAt: now } },
+    );
+    if (consumedOtp.modifiedCount !== 1) {
+      return { success: false, error: "Invalid or expired verification code" };
+    }
+    const updatedUser = await User.findByIdAndUpdate(
+      otpRecord.userId,
+      { password: hashed, updatedAt: now },
+      { new: true },
+    ).select("_id");
+    if (!updatedUser) return { success: false, error: "Account not found" };
 
     return { success: true, message: "Password reset successfully" };
   } catch (error) {
+    const message = validationError(error);
+    if (message) return { success: false, error: message };
     console.error("Error resetting password:", error);
     return { success: false, error: "Failed to reset password. Please try again." };
   }

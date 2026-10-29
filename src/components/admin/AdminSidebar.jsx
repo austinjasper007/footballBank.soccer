@@ -6,6 +6,7 @@ import {
   Inbox,
   FileCheck,
   FileText,
+  Video,
   Settings,
   House,
   Menu,
@@ -25,6 +26,7 @@ const navigationItems = [
   { id: 'resume-requests', icon: FileCheck, label: 'Resume Requests', badge: 0 },
   { id: 'blog', icon: FileText, label: 'Blog' },
   { id: 'agent', icon: Users, label: 'Agent' },
+  { id: 'media-portal', icon: Video, label: 'Media Portal' },
   { id: 'settings', icon: Settings, label: 'Settings' },
 ];
 

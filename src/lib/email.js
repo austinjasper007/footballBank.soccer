@@ -3,7 +3,7 @@ import { brandedEmail, escapeEmailHtml } from '@/lib/emailTemplates';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-export async function sendEmail({ to, subject, html, text, attachments }) {
+export async function sendEmail({ to, subject, html, text, attachments, from = 'FootballBank.soccer <contact@footballbank.soccer>' }) {
   try {
     // console.log("🔍 Starting sendEmail to:", to);
     // console.log("🔍 Resend API key exists:", !!process.env.RESEND_API_KEY);
@@ -22,7 +22,7 @@ export async function sendEmail({ to, subject, html, text, attachments }) {
     // console.log("🔍 Attempting to send email with Resend API...");
     
     const emailPayload = {
-      from: 'FootballBank.soccer <contact@footballbank.soccer>',
+      from,
       to: [to],
       subject,
       html,
@@ -104,6 +104,28 @@ export async function sendWelcomeEmail({ to, firstName }) {
     footerNote: "Your account is protected by email verification.",
   });
   return sendEmail({ to, subject: "Welcome to FootballBank International", ...email });
+}
+
+export async function sendMediaAccessEmail({ to, recipientName, playerName, organization, customMessage, expiresAt, url }) {
+  const expiry = new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" }).format(expiresAt);
+  const safeMessage = customMessage ? `<p>${escapeEmailHtml(customMessage)}</p>` : "";
+  const email = brandedEmail({
+    eyebrow: "FootballBank Media",
+    preheader: `Private media access for ${playerName}`,
+    title: "Player media access",
+    greeting: `Hello ${recipientName},`,
+    body: `<p>You have been granted private access to the FootballBank profile and media library for <strong>${escapeEmailHtml(playerName)}</strong>.</p>${safeMessage}`,
+    details: [{ label: "Organisation", value: organization || "Not provided" }, { label: "Access expires (UTC)", value: expiry }],
+    ctaLabel: "View player media",
+    ctaUrl: url,
+    footerNote: "This personal access link is time-limited. Please do not forward it.",
+  });
+  return sendEmail({
+    to,
+    subject: `Private player media access: ${playerName}`,
+    from: "FootballBank Media <media@footballbank.soccer>",
+    ...email,
+  });
 }
 
 export async function sendPlayerSubmissionDecisionEmail({ to, firstName, playerName, approved, reason }) {

@@ -220,3 +220,28 @@ export async function getPlayerAccess(playerId) {
   ]);
   return { profileAccess: isOwner || Boolean(profileRequest), cvAccess: Boolean(cvRequest) };
 }
+
+export async function getAuthorizedPlayerDetails(playerId) {
+  const authUser = await requireAuth();
+  await dbConnect();
+  const player = await Player.findById(playerId)
+    .select("userId dob countryCode height weight email phone phoneCountryCode cvUrl description stats clubHistory availableFrom preferredLeagues salaryExpectation")
+    .lean();
+  if (!player) return null;
+
+  const isOwner = player.userId?.toString() === authUser.id;
+  const hasProfileApproval = authUser.role === "admin" || isOwner || Boolean(
+    await ResumeRequest.exists({
+      requesterId: authUser.id,
+      playerId,
+      requestType: "PROFILE",
+      status: "APPROVED",
+    }),
+  );
+  if (!hasProfileApproval) {
+    throw new Error("Approved player profile access is required");
+  }
+
+  const { userId: _userId, ...details } = player;
+  return toPlain(details);
+}

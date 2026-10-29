@@ -12,6 +12,7 @@ import { SettingsView } from "@/components/admin/views/SettingsView";
 import UsersView from "@/components/admin/views/UsersView";
 import AgentView from "@/components/admin/views/AgentView";
 import ResumeRequestsView from "@/components/admin/views/ResumeRequestsView";
+import MediaPortalView from "@/components/admin/views/MediaPortalView";
 import { useAuth } from "@/context/NewAuthContext";
 import { useToast } from "@/hooks/use-toast";
 import SplashScreen from "@/components/SplashScreen";
@@ -104,6 +105,8 @@ const AdminDashboard = () => {
         return <AdminBlogView refreshPulse={refreshPulse} />;
       case "agent":
         return <AgentView />;
+      case "media-portal":
+        return <MediaPortalView />;
       case "settings":
         return <SettingsView />;
       default:
@@ -140,6 +143,7 @@ const AdminDashboard = () => {
         title: "Agent Management",
         subtitle: "Manage agent profile and information",
       },
+      "media-portal": { title: "Media Portal", subtitle: "Publish player media and send private access" },
       settings: { title: "Settings", subtitle: "Configure system preferences" },
     };
     return (

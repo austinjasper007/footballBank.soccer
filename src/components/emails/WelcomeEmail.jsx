@@ -1,31 +1,20 @@
-// /emails/WelcomeEmail.jsx
-import {
-  Html,
-  Head,
-  Preview,
-  Body,
-  Container,
-  Text,
-  Heading,
-} from '@react-email/components';
-
-
 export default function WelcomeEmail({ firstName }) {
   return (
-    <Html>
-      <Head />
-      <Preview>Welcome to Footballbank, {firstName}!</Preview>
-      <Body style={{ backgroundColor: '#f6f9fc', fontFamily: 'Arial' }}>
-        <Container style={{ padding: '20px', backgroundColor: '#fff' }}>
-          <Heading style={{ color: '#1a202c' }}>
+    <html>
+      <head>
+        <title>{`Welcome to Footballbank, ${firstName}!`}</title>
+      </head>
+      <body style={{ backgroundColor: '#f6f9fc', fontFamily: 'Arial' }}>
+        <div style={{ padding: '20px', backgroundColor: '#fff' }}>
+          <h1 style={{ color: '#1a202c' }}>
             👋 Hey {firstName},
-          </Heading>
-          <Text>
+          </h1>
+          <p>
             Welcome to <strong>Footballbank.soccer</strong> — your all-in-one platform for football finance and game intelligence.
-          </Text>
-          <Text>You're officially on the team ⚽</Text>
-        </Container>
-      </Body>
-    </Html>
+          </p>
+          <p>You're officially on the team ⚽</p>
+        </div>
+      </body>
+    </html>
   );
 }

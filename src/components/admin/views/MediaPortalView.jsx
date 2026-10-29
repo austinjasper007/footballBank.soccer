@@ -8,6 +8,7 @@ import {
   CircleAlert,
   Clock3,
   Film,
+  FileText,
   FolderSync,
   GripVertical,
   ListVideo,
@@ -32,6 +33,7 @@ import {
   setMediaPublication,
   updatePlayerMedia,
 } from "@/actions/mediaPortalActions";
+import MediaPlayerProfileForm from "@/components/admin/views/MediaPlayerProfileForm";
 import { useToast } from "@/hooks/use-toast";
 
 const MAX_UPLOAD_BYTES = 20 * 1024 * 1024 * 1024;
@@ -54,6 +56,7 @@ const fieldClass = "h-12 w-full rounded-xl border border-slate-200 bg-slate-50 p
 const labelClass = "mb-2 block text-xs font-semibold uppercase tracking-[0.12em] text-slate-500";
 const sectionClass = "overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm";
 const mediaPortalTabs = [
+  { id: "profile", label: "Player profile", icon: FileText },
   { id: "upload", label: "Upload", icon: UploadCloud },
   { id: "library", label: "Media library", icon: ListVideo },
   { id: "invite", label: "Send invite", icon: Mail },
@@ -604,7 +607,7 @@ export default function MediaPortalView() {
         <>
           <nav
             aria-label="Player media sections"
-            className="mb-5 grid grid-cols-2 gap-2 rounded-2xl border border-slate-200/80 bg-slate-100/80 p-2 sm:grid-cols-4"
+            className="mb-5 grid grid-cols-2 gap-2 rounded-2xl border border-slate-200/80 bg-slate-100/80 p-2 sm:grid-cols-5"
           >
             {mediaPortalTabs.map(({ id, label, icon: Icon }) => (
               <button
@@ -633,6 +636,10 @@ export default function MediaPortalView() {
               </button>
             ))}
           </nav>
+
+          <section hidden={activeTab !== "profile"}>
+            <MediaPlayerProfileForm key={player.id} player={player} onSaved={refreshPlayers} />
+          </section>
 
           <section id="media-tab-upload" hidden={activeTab !== "upload"} className={sectionClass}>
             <div className="border-b border-slate-100 px-5 py-5 sm:px-7">

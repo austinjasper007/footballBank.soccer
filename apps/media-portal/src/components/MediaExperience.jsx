@@ -280,157 +280,270 @@ function VideoGallery({
   );
 }
 
-function formatLabel(value) {
-  return value.replace(/([A-Z])/g, " $1").replace(/[_-]/g, " ").replace(/^./, (character) => character.toUpperCase());
-}
-
-function isRecord(value) {
-  return value !== null && typeof value === "object" && !Array.isArray(value) && !(value instanceof Date);
-}
-
-function displayStat(value) {
-  if (value === null || typeof value === "undefined" || value === "") return "—";
-  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") return String(value);
+function profileValue(value) {
+  if (Array.isArray(value)) return value.map(profileValue).filter(Boolean).join(", ");
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (typeof value === "string" || typeof value === "number") return String(value).trim();
   return "";
 }
 
+function profileRows(section, fields) {
+  if (!section || typeof section !== "object") return [];
+  return fields
+    .map(([label, key]) => [label, profileValue(section[key])])
+    .filter(([, value]) => value);
+}
+
+function ProfileSection({ title, rows, children, className = "" }) {
+  if (!children && rows.length === 0) return null;
+  return (
+    <section className={`cv-section ${className}`}>
+      <p className="cv-section-label">{title}</p>
+      {rows.length > 0 && (
+        <dl className="cv-detail-list cv-profile-rows">
+          {rows.map(([label, value]) => (
+            <div key={label}>
+              <dt>{label}</dt>
+              <dd>{value}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+      {children}
+    </section>
+  );
+}
+
+function ProfilePhotoGroup({ title, photos }) {
+  const items = (Array.isArray(photos) ? photos : [photos]).filter(Boolean);
+  if (!items.length) return null;
+  return (
+    <div className="cv-photo-group">
+      <h3>{title}</h3>
+      <div className="cv-photo-grid">
+        {items.map((url, index) => (
+          <a key={`${url}-${index}`} href={url} target="_blank" rel="noreferrer">
+            <img src={url} alt={`${title} ${index + 1}`} loading="lazy" />
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function ProfileTab({ player }) {
-  const stats = isRecord(player.stats) ? Object.entries(player.stats) : [];
-  const clubs = Array.isArray(player.clubHistory) ? player.clubHistory : [];
-  const preferredLeagues = Array.isArray(player.preferredLeagues)
-    ? player.preferredLeagues
-    : player.preferredLeagues ? [player.preferredLeagues] : [];
-  const phoneNumber = player.contact?.phone?.trim() || "";
+  const profile = player.portalProfile || {};
+  const personal = profile.personal || {};
+  const playerDetails = profile.player || {};
+  const club = profile.currentClub || {};
+  const career = Array.isArray(profile.footballHistory) ? profile.footballHistory : [];
+  const trials = Array.isArray(profile.trials) ? profile.trials : [];
+  const photos = profile.photos || {};
+  const hasProfilePhotos = [
+    photos.professionalHeadshot,
+    photos.fullBody,
+    photos.action,
+    photos.currentClubKit,
+    photos.recentMatchesTraining,
+    player.imageUrl,
+  ].some((value) => Array.isArray(value) ? value.some(Boolean) : Boolean(value));
+  const name = personal.fullName || [player.firstName, player.lastName].filter(Boolean).join(" ");
+  const portrait = photos.professionalHeadshot || player.headshotUrl;
 
   return (
     <div className="cv-page">
       <header className="cv-heading">
         <div>
-          <p className="eyebrow">FootballBank International · Athlete CV</p>
-          <h2>{[player.firstName, player.lastName].filter(Boolean).join(" ")}</h2>
-          <p>{[player.position, player.country].filter(Boolean).join(" · ")}</p>
+          <h2>{name}</h2>
+          <p>{[playerDetails.mainPosition || player.position, personal.nationality || player.country].filter(Boolean).join(" · ")}</p>
         </div>
-        <span className="cv-status">{player.contractStatus || "Player profile"}</span>
+        <span className="cv-status">Player profile</span>
       </header>
 
       <div className="cv-layout">
         <aside className="cv-sidebar">
-          {player.headshotUrl && (
-            <img className="cv-portrait" src={player.headshotUrl} alt={`${player.firstName} ${player.lastName}`} />
-          )}
-
+          {portrait && <img className="cv-portrait" src={portrait} alt={`${name} portrait`} />}
           <section className="cv-sidebar-section">
-            <p className="cv-section-label">Contact</p>
-            {player.contact ? (
-              <div className="cv-contact-list">
-                {player.contact.email && (
-                  <a href={`mailto:${player.contact.email}`}>
-                    <span>Email</span>
-                    <strong>{player.contact.email}</strong>
-                  </a>
-                )}
-                {phoneNumber && (
-                  <a href={`tel:${phoneNumber.replace(/[^\d+]/g, "")}`}>
-                    <span>Phone</span>
-                    <strong>{phoneNumber}</strong>
-                  </a>
-                )}
-                {!player.contact.email && !phoneNumber && <p className="cv-muted">No contact details provided.</p>}
-              </div>
-            ) : (
-              <p className="cv-muted">Contact details are hidden until the player’s consent to share them is recorded.</p>
-            )}
-          </section>
-
-          <section className="cv-sidebar-section">
-            <p className="cv-section-label">Player details</p>
+            <p className="cv-section-label">Personal information</p>
             <dl className="cv-detail-list">
-              {[
-                ["Nationality", player.country],
-                ["Current club", player.currentClub || "Independent"],
-                ["Height", player.height],
-                ["Weight", player.weight],
-                ["Preferred foot", player.foot],
-              ].filter(([, value]) => value).map(([label, value]) => (
-                <div key={label}>
-                  <dt>{label}</dt>
-                  <dd>{value}</dd>
-                </div>
+              {profileRows(personal, [
+                ["Date of birth", "dateOfBirth"],
+                ["Place of birth", "placeOfBirth"],
+                ["Nationality", "nationality"],
+                ["Passport", "passportValid"],
+                ["Passport expiry", "passportExpiry"],
+                ["Current city", "currentCityCountry"],
+              ]).map(([label, value]) => (
+                <div key={label}><dt>{label}</dt><dd>{value}</dd></div>
               ))}
             </dl>
           </section>
-
           <section className="cv-sidebar-section">
-            <p className="cv-section-label">Availability</p>
+            <p className="cv-section-label">Player information</p>
             <dl className="cv-detail-list">
-              <div>
-                <dt>Available from</dt>
-                <dd>{player.availableFrom || "To be confirmed"}</dd>
-              </div>
-              <div>
-                <dt>Preferred leagues</dt>
-                <dd>{preferredLeagues.join(", ") || "Open to opportunities"}</dd>
-              </div>
+              {profileRows(playerDetails, [
+                ["Height", "heightCm"],
+                ["Weight", "weightKg"],
+                ["Preferred foot", "preferredFoot"],
+                ["Main position", "mainPosition"],
+                ["Other positions", "otherPositions"],
+                ["Current jersey number", "currentJerseyNumber"],
+                ["Previous jersey numbers", "previousJerseyNumbers"],
+              ]).map(([label, value]) => (
+                <div key={label}><dt>{label}</dt><dd>{value}</dd></div>
+              ))}
             </dl>
           </section>
         </aside>
 
         <div className="cv-main">
-          <section className="cv-section">
-            <p className="cv-section-label">Professional profile</p>
-            <p className="cv-summary">
-              {player.description || "A football professional available for new opportunities."}
-            </p>
-          </section>
+          <ProfileSection
+            title="Current club and contract"
+            rows={profileRows(club, [
+              ["Official club", "officialName"],
+              ["Country", "country"],
+              ["League / division", "league"],
+              ["Date joined", "joinedDate"],
+              ["Registered with club / federation", "registered"],
+              ["Player status", "contractType"],
+              ["Written contract", "writtenContract"],
+              ["Contract start", "contractStartDate"],
+              ["Contract expiry", "contractExpiryDate"],
+              ["Player has contract copy", "hasContractCopy"],
+              ["Club extension option", "extensionOption"],
+              ["Release clause", "releaseClause"],
+              ["Transfer / loan / release agreement", "transferAgreement"],
+              ["Outstanding money", "moneyOwed"],
+            ])}
+          />
 
-          <section className="cv-section">
-            <p className="cv-section-label">Playing career</p>
-            {clubs.length ? (
-              <ol className="cv-career-list">
-                {clubs.map((club, index) => (
-                  <li key={`${club.clubName || "club"}-${index}`}>
-                    <div>
-                      <h3>{club.clubName || "Club"}</h3>
-                      <p>{club.position || player.position}</p>
-                    </div>
-                    <span>{[club.startDate, club.endDate || "Present"].filter(Boolean).join(" — ")}</span>
-                  </li>
+          <ProfileSection
+            title="Current season"
+            rows={profileRows(profile.season, [
+              ["Team league matches", "teamMatches"],
+              ["Matchday squads", "matchdaySquad"],
+              ["Matches played", "matchesPlayed"],
+              ["Starts", "starts"],
+              ["Substitute appearances", "substituteAppearances"],
+              ["Complete 90-minute matches", "completeMatches"],
+              ["Total minutes", "totalMinutes"],
+              ["Goals", "goals"],
+              ["Assists", "assists"],
+              ["Yellow cards", "yellowCards"],
+              ["Red cards", "redCards"],
+              ["Clean sheets", "cleanSheets"],
+            ])}
+          />
+
+          <ProfileSection
+            title="Official playing statistics"
+            rows={profileRows(profile.officialStats, [
+              ["Pass completion", "passCompletion"],
+              ["Tackles", "tackles"],
+              ["Tackles won", "tacklesWon"],
+              ["Interceptions", "interceptions"],
+              ["Clearances", "clearances"],
+              ["Blocks", "blocks"],
+              ["Ball recoveries", "ballRecoveries"],
+              ["Progressive passes", "progressivePasses"],
+              ["Long passes", "longPasses"],
+              ["Long-pass accuracy", "longPassAccuracy"],
+              ["Chances created", "chancesCreated"],
+              ["Key passes", "keyPasses"],
+              ["Other verified statistics", "other"],
+            ])}
+          />
+
+          <ProfileSection
+            title="Injury and current fitness"
+            rows={profileRows(profile.injury, [
+              ["Injury", "injury"],
+              ["Injury date", "injuryDate"],
+              ["Returned to full team training", "returnToFullTraining"],
+              ["Medical clearance date", "medicallyClearedDate"],
+              ["First competitive match after injury", "firstCompetitiveMatchAfter"],
+              ["Training without restrictions", "trainingWithoutRestrictions"],
+              ["Playing without restrictions", "playingWithoutRestrictions"],
+              ["Receiving current treatment", "currentTreatment"],
+              ["Medical report / clearance", "medicalReportAvailable"],
+            ])}
+          />
+
+          <ProfileSection title="Football history" rows={[]}>
+            {career.length ? (
+              <div className="cv-repeat-list">
+                {career.map((entry, index) => (
+                  <article className="cv-repeat-entry" key={`${entry.academyOrClub || "club"}-${index}`}>
+                    <h3>{entry.academyOrClub || "Club / academy"}</h3>
+                    <dl className="cv-detail-list">
+                      {profileRows(entry, [
+                        ["Country", "country"],
+                        ["Joined", "joined"],
+                        ["Left", "left"],
+                        ["Age joined", "ageJoined"],
+                        ["Age left", "ageLeft"],
+                        ["Level", "level"],
+                        ["Position", "position"],
+                        ["League / competition", "leagueCompetition"],
+                        ["Appearances", "appearances"],
+                        ["Goals / assists", "goalsAssists"],
+                        ["Achievements", "achievements"],
+                        ["Reason for leaving", "reasonLeft"],
+                        ["Federation registered", "federationRegistered"],
+                      ]).map(([label, value]) => (
+                        <div key={label}><dt>{label}</dt><dd>{value}</dd></div>
+                      ))}
+                    </dl>
+                  </article>
                 ))}
-              </ol>
-            ) : (
-              <p className="cv-muted">Club history has not been added yet.</p>
-            )}
-          </section>
-
-          <section className="cv-section">
-            <p className="cv-section-label">Performance record</p>
-            {stats.length ? (
-              <div className="stats-grid">
-                {stats.map(([group, values]) => {
-                  const groupEntries = isRecord(values) ? Object.entries(values) : [["Total", values]];
-                  const visibleEntries = groupEntries
-                    .map(([label, value]) => [label, displayStat(value)])
-                    .filter(([, value]) => value);
-                  if (!visibleEntries.length) return null;
-                  return (
-                    <article key={group} className="stats-card">
-                      <h3>{formatLabel(group)}</h3>
-                      <dl>
-                        {visibleEntries.map(([label, value]) => (
-                          <div key={label}>
-                            <dt>{formatLabel(label)}</dt>
-                            <dd>{value}</dd>
-                          </div>
-                        ))}
-                      </dl>
-                    </article>
-                  );
-                })}
               </div>
-            ) : (
-              <p className="cv-muted">Player statistics have not been added yet.</p>
+            ) : <p className="cv-muted">No football history has been added.</p>}
+          </ProfileSection>
+
+          <ProfileSection
+            title="National and representative football"
+            rows={profileRows(profile.representative, [
+              ["National-team camps", "nationalTeamCamps"],
+              ["Representative teams", "representedTeams"],
+            ])}
+          />
+
+          <ProfileSection
+            title="Trials and international experience"
+            rows={profileRows(profile.overseas, [["Played or lived outside home country", "experience"]])}
+          >
+            {trials.length > 0 && (
+              <div className="cv-repeat-list">
+                {trials.map((trial, index) => (
+                  <article className="cv-repeat-entry" key={`${trial.club || "trial"}-${index}`}>
+                    <h3>{trial.club || "Trial"}</h3>
+                    <dl className="cv-detail-list">
+                      {profileRows(trial, [
+                        ["Country", "country"],
+                        ["Date / year", "date"],
+                        ["Length of trial", "duration"],
+                        ["Outcome", "outcome"],
+                      ]).map(([label, value]) => (
+                        <div key={label}><dt>{label}</dt><dd>{value}</dd></div>
+                      ))}
+                    </dl>
+                  </article>
+                ))}
+              </div>
             )}
-          </section>
+          </ProfileSection>
+
+          {hasProfilePhotos && (
+            <ProfileSection title="Player photos" rows={[]}>
+              <div className="cv-photo-groups">
+                <ProfilePhotoGroup title="Professional headshot" photos={photos.professionalHeadshot} />
+                <ProfilePhotoGroup title="Full-body photo" photos={photos.fullBody} />
+                <ProfilePhotoGroup title="Competitive match action" photos={photos.action?.length ? photos.action : player.imageUrl} />
+                <ProfilePhotoGroup title="Current club kit" photos={photos.currentClubKit} />
+                <ProfilePhotoGroup title="Recent matches and training" photos={photos.recentMatchesTraining} />
+              </div>
+            </ProfileSection>
+          )}
         </div>
       </div>
     </div>

@@ -2,7 +2,6 @@ import crypto from "node:crypto";
 import dbConnect from "@/lib/db";
 import { Asset, Media, Player, Playlist, Publication, Share } from "@/lib/models";
 import { createBunnyThumbnailUrl } from "@/lib/playback";
-import { formatPlayerPhone } from "@/lib/phone";
 
 const hash = (value) => crypto.createHash("sha256").update(value).digest("hex");
 const playerFields = [
@@ -23,6 +22,78 @@ const playerFields = [
   "availableFrom",
   "preferredLeagues",
 ].join(" ");
+
+const portalProfileFields = {
+  personal: ["fullName", "dateOfBirth", "placeOfBirth", "nationality", "passportValid", "passportExpiry", "currentCityCountry"],
+  player: ["heightCm", "weightKg", "preferredFoot", "mainPosition", "currentJerseyNumber"],
+  currentClub: ["officialName", "country", "league", "joinedDate", "registered", "contractType", "writtenContract", "contractStartDate", "contractExpiryDate", "hasContractCopy", "extensionOption", "releaseClause", "transferAgreement", "moneyOwed"],
+  season: ["teamMatches", "matchdaySquad", "matchesPlayed", "starts", "substituteAppearances", "completeMatches", "totalMinutes", "goals", "assists", "yellowCards", "redCards", "cleanSheets"],
+  officialStats: ["passCompletion", "tackles", "tacklesWon", "interceptions", "clearances", "blocks", "ballRecoveries", "progressivePasses", "longPasses", "longPassAccuracy", "chancesCreated", "keyPasses", "other"],
+  injury: ["injury", "injuryDate", "returnToFullTraining", "medicallyClearedDate", "firstCompetitiveMatchAfter", "trainingWithoutRestrictions", "playingWithoutRestrictions", "currentTreatment", "medicalReportAvailable"],
+  representative: ["nationalTeamCamps", "representedTeams"],
+  overseas: ["experience"],
+};
+const historyFields = ["academyOrClub", "country", "joined", "left", "ageJoined", "ageLeft", "level", "position", "leagueCompetition", "appearances", "goalsAssists", "achievements", "reasonLeft", "federationRegistered"];
+const trialFields = ["club", "country", "date", "duration", "outcome"];
+
+function pickProfileFields(value, fields) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(fields
+    .filter((field) => typeof value[field] === "string")
+    .map((field) => [field, value[field]]));
+}
+
+function pickProfileList(value, fields) {
+  if (!Array.isArray(value)) return [];
+  return value.slice(0, 20).map((entry) => pickProfileFields(entry, fields));
+}
+
+function safeProfilePhoto(value) {
+  if (typeof value !== "string") return "";
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && ["firebasestorage.googleapis.com", "storage.googleapis.com"].includes(url.hostname)
+      ? url.toString()
+      : "";
+  } catch {
+    return "";
+  }
+}
+
+function sanitizePortalProfile(value) {
+  const profile = value && typeof value === "object" && !Array.isArray(value) ? value : {};
+  const photos = profile.photos && typeof profile.photos === "object" && !Array.isArray(profile.photos) ? profile.photos : {};
+  const photoList = (items, limit) => Array.isArray(items)
+    ? [...new Set(items.slice(0, limit).map(safeProfilePhoto).filter(Boolean))]
+    : [];
+  const photo = (item) => safeProfilePhoto(item);
+  const player = pickProfileFields(profile.player, portalProfileFields.player);
+  player.otherPositions = Array.isArray(profile.player?.otherPositions)
+    ? profile.player.otherPositions.filter((item) => typeof item === "string").slice(0, 20)
+    : [];
+  player.previousJerseyNumbers = Array.isArray(profile.player?.previousJerseyNumbers)
+    ? profile.player.previousJerseyNumbers.filter((item) => typeof item === "string").slice(0, 20)
+    : [];
+  return {
+    personal: pickProfileFields(profile.personal, portalProfileFields.personal),
+    player,
+    currentClub: pickProfileFields(profile.currentClub, portalProfileFields.currentClub),
+    season: pickProfileFields(profile.season, portalProfileFields.season),
+    officialStats: pickProfileFields(profile.officialStats, portalProfileFields.officialStats),
+    injury: pickProfileFields(profile.injury, portalProfileFields.injury),
+    footballHistory: pickProfileList(profile.footballHistory, historyFields),
+    representative: pickProfileFields(profile.representative, portalProfileFields.representative),
+    trials: pickProfileList(profile.trials, trialFields),
+    overseas: pickProfileFields(profile.overseas, portalProfileFields.overseas),
+    photos: {
+      professionalHeadshot: photo(photos.professionalHeadshot),
+      fullBody: photo(photos.fullBody),
+      action: photoList(photos.action, 5),
+      currentClubKit: photo(photos.currentClubKit),
+      recentMatchesTraining: photoList(photos.recentMatchesTraining, 10),
+    },
+  };
+}
 
 export async function getPortalProfile(token) {
   if (!/^[A-Za-z0-9_-]{43}$/.test(token)) return null;
@@ -50,15 +121,11 @@ export async function getPortalProfile(token) {
   const publication = await Publication.findOne({
     playerId: share.playerId,
     isPublished: true,
-  }).select("contactConsentConfirmedAt").lean();
+  }).select("playerProfile").lean();
   if (!publication) return null;
 
-  const shareContactDetails = Boolean(publication.contactConsentConfirmedAt);
-  const selectedPlayerFields = shareContactDetails
-    ? `${playerFields} email phone phoneCountryCode`
-    : playerFields;
   const [player, placements, playlists] = await Promise.all([
-    Player.findById(share.playerId).select(selectedPlayerFields).lean(),
+    Player.findById(share.playerId).select(playerFields).lean(),
     Media.find({ playerId: share.playerId, isPublished: true })
       .sort({ displayOrder: 1, createdAt: -1 })
       .lean(),
@@ -105,10 +172,6 @@ export async function getPortalProfile(token) {
       weight: player.weight,
       foot: player.foot,
       description: player.description,
-      contact: shareContactDetails ? {
-        email: player.email || "",
-        phone: formatPlayerPhone(player.phone, player.phoneCountryCode),
-      } : null,
       headshotUrl: player.headshotUrl,
       imageUrl: player.imageUrl || [],
       stats: player.stats,
@@ -116,6 +179,7 @@ export async function getPortalProfile(token) {
       contractStatus: player.contractStatus,
       availableFrom: player.availableFrom,
       preferredLeagues: player.preferredLeagues || [],
+      portalProfile: sanitizePortalProfile(publication.playerProfile),
     },
     media,
     playlists: playlists.map((item) => ({ id: String(item._id), title: item.title })),

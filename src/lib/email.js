@@ -3,7 +3,7 @@ import { brandedEmail, escapeEmailHtml } from '@/lib/emailTemplates';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-export async function sendEmail({ to, subject, html, text, attachments }) {
+export async function sendEmail({ to, subject, html, text, attachments, from = 'FootballBank.soccer <contact@footballbank.soccer>' }) {
   try {
     // console.log("🔍 Starting sendEmail to:", to);
     // console.log("🔍 Resend API key exists:", !!process.env.RESEND_API_KEY);
@@ -22,7 +22,7 @@ export async function sendEmail({ to, subject, html, text, attachments }) {
     // console.log("🔍 Attempting to send email with Resend API...");
     
     const emailPayload = {
-      from: 'FootballBank.soccer <contact@footballbank.soccer>',
+      from,
       to: [to],
       subject,
       html,
@@ -120,7 +120,12 @@ export async function sendMediaAccessEmail({ to, recipientName, playerName, orga
     ctaUrl: url,
     footerNote: "This personal access link is time-limited. Please do not forward it.",
   });
-  return sendEmail({ to, subject: `Private player media access: ${playerName}`, ...email });
+  return sendEmail({
+    to,
+    subject: `Private player media access: ${playerName}`,
+    from: "FootballBank Media <media@footballbank.soccer>",
+    ...email,
+  });
 }
 
 export async function sendPlayerSubmissionDecisionEmail({ to, firstName, playerName, approved, reason }) {

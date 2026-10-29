@@ -876,6 +876,7 @@ button:focus-visible {
   font-size: 13px;
 }
 .cv-page {
+  min-width: 0;
   overflow: hidden;
   border: 1px solid var(--color-divider);
   border-radius: 15px;
@@ -922,8 +923,10 @@ button:focus-visible {
 .cv-layout {
   display: grid;
   grid-template-columns: minmax(230px, 0.72fr) minmax(0, 1.6fr);
+  min-width: 0;
 }
 .cv-sidebar {
+  min-width: 0;
   padding: 24px;
   background: var(--color-primary-surface);
 }
@@ -987,11 +990,67 @@ button:focus-visible {
   font-size: 14px;
   font-weight: 700;
   line-height: 1.5;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+.cv-detail-list.cv-profile-rows {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 22px;
+}
+.cv-repeat-list {
+  display: grid;
+  gap: 18px;
+}
+.cv-repeat-entry {
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--color-divider);
+}
+.cv-repeat-entry .cv-detail-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 20px;
+}
+.cv-repeat-entry:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+.cv-repeat-entry h3,
+.cv-photo-group h3 {
+  margin: 0 0 12px;
+  color: var(--color-primary-navy);
+  font-size: 16px;
+  font-weight: 700;
+}
+.cv-photo-groups {
+  display: grid;
+  gap: 20px;
+}
+.cv-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.cv-photo-grid a {
+  display: block;
+  overflow: hidden;
+  border-radius: 9px;
+  background: var(--color-secondary-bg-alt);
+}
+.cv-photo-grid img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  transition: transform 180ms ease;
+}
+.cv-photo-grid a:hover img {
+  transform: scale(1.04);
 }
 .cv-main {
+  min-width: 0;
   padding: 25px 30px;
 }
 .cv-section {
+  min-width: 0;
   padding: 0 0 22px;
 }
 .cv-section + .cv-section {
@@ -1400,20 +1459,57 @@ button:focus-visible {
     grid-template-columns: 1fr;
   }
   .cv-sidebar {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0 16px;
-    padding: 17px;
+    display: block;
+    padding: 14px 16px;
   }
   .cv-portrait {
-    width: min(100%, 170px);
-    grid-column: 1 / -1;
+    width: min(100%, 150px);
   }
   .cv-sidebar-section {
     padding: 14px 0;
   }
+  .cv-detail-list.cv-profile-rows {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .cv-repeat-entry .cv-detail-list {
+    grid-template-columns: 1fr;
+  }
+  .cv-photo-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
   .cv-main {
     padding: 20px 17px;
+  }
+  .cv-section {
+    padding-bottom: 18px;
+  }
+  .cv-section + .cv-section {
+    padding-top: 17px;
+  }
+  .cv-section-label {
+    font-size: 11px;
+    letter-spacing: 0.09em;
+  }
+  .cv-detail-list dd {
+    font-size: 13px;
+  }
+  .cv-photo-grid {
+    gap: 8px;
+  }
+  .cv-repeat-entry {
+    overflow-wrap: anywhere;
+  }
+  .cv-heading > div {
+    width: 100%;
+  }
+  .cv-heading h2 {
+    max-width: 100%;
+    font-size: clamp(1.7rem, 8vw, 2.25rem);
+  }
+  .cv-heading > div > p:last-child {
+    overflow-wrap: anywhere;
+    font-size: 13px;
   }
   .cv-career-list li {
     flex-direction: column;

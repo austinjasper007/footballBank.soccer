@@ -270,6 +270,7 @@ const mediaPublicationSchema = new mongoose.Schema({
   consentConfirmedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   contactConsentConfirmedAt: { type: Date },
   contactConsentConfirmedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  playerProfile: { type: mongoose.Schema.Types.Mixed, default: {} },
   featuredMediaId: { type: mongoose.Schema.Types.ObjectId, ref: 'PlayerMedia' },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },

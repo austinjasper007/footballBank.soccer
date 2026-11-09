@@ -327,6 +327,8 @@ const mediaShareSchema = new mongoose.Schema({
   recipientEmail: { type: String, required: true, maxlength: 320 },
   organization: { type: String, maxlength: 160 },
   customMessage: { type: String, maxlength: 2000 },
+  allowDocumentAccess: { type: Boolean, default: false },
+  allowVideoDownload: { type: Boolean, default: false },
   sentBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   sentAt: { type: Date, required: true },
   expiresAt: { type: Date, required: true, index: true },
@@ -338,6 +340,19 @@ const mediaShareSchema = new mongoose.Schema({
   historyDeletedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   createdAt: { type: Date, default: Date.now },
 });
+
+const playerDocumentSchema = new mongoose.Schema({
+  playerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Player', required: true, index: true },
+  fileName: { type: String, required: true, maxlength: 255 },
+  folderPath: { type: String, default: '', maxlength: 500 },
+  storagePath: { type: String, required: true, maxlength: 1024 },
+  downloadUrl: { type: String, required: true, maxlength: 4096 },
+  mimeType: { type: String, required: true, maxlength: 150 },
+  fileSize: { type: Number, required: true, min: 1 },
+  uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  createdAt: { type: Date, default: Date.now },
+});
+playerDocumentSchema.index({ playerId: 1, folderPath: 1, fileName: 1 }, { unique: true });
 
 // Create models with proper error handling - use existing collection names from Prisma
 // Guard against stale cached models: Next.js hot-reload can keep a previously
@@ -372,3 +387,4 @@ export const MediaAsset = defineModel('MediaAsset', mediaAssetSchema);
 export const PlayerMedia = defineModel('PlayerMedia', playerMediaSchema);
 export const MediaPlaylist = defineModel('MediaPlaylist', mediaPlaylistSchema);
 export const MediaShare = defineModel('MediaShare', mediaShareSchema);
+export const PlayerDocument = defineModel('PlayerDocument', playerDocumentSchema);

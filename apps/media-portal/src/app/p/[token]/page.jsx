@@ -32,7 +32,12 @@ export default async function Page({ params, searchParams }) {
   const data = await getCachedPortalProfile(token);
   if (!data) notFound();
 
-  const availableViews = new Set(["media", "profile", "playlists"]);
+  const availableViews = new Set([
+    "media",
+    "profile",
+    "playlists",
+    ...(data.allowDocumentAccess ? ["documentation"] : []),
+  ]);
   const requestedView = Array.isArray(query.view) ? query.view[0] : query.view;
   const selectedView = availableViews.has(requestedView)
     ? requestedView

@@ -106,7 +106,17 @@ export async function sendWelcomeEmail({ to, firstName }) {
   return sendEmail({ to, subject: "Welcome to FootballBank International", ...email });
 }
 
-export async function sendMediaAccessEmail({ to, recipientName, playerName, organization, customMessage, expiresAt, url }) {
+export async function sendMediaAccessEmail({
+  to,
+  recipientName,
+  playerName,
+  organization,
+  customMessage,
+  expiresAt,
+  allowDocumentAccess,
+  allowVideoDownload,
+  url,
+}) {
   const expiry = new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" }).format(expiresAt);
   const safeMessage = customMessage ? `<p>${escapeEmailHtml(customMessage)}</p>` : "";
   const email = brandedEmail({
@@ -114,8 +124,13 @@ export async function sendMediaAccessEmail({ to, recipientName, playerName, orga
     preheader: `Private media access for ${playerName}`,
     title: "Player media access",
     greeting: `Hello ${recipientName},`,
-    body: `<p>You have been granted private access to the FootballBank profile and media library for <strong>${escapeEmailHtml(playerName)}</strong>.</p>${safeMessage}`,
-    details: [{ label: "Organisation", value: organization || "Not provided" }, { label: "Access expires (UTC)", value: expiry }],
+    body: `<p>You have been granted private access to the FootballBank profile and media library for <strong>${escapeEmailHtml(playerName)}</strong>.</p>${allowDocumentAccess ? "<p>You can also view and download the player's shared documents.</p>" : ""}${allowVideoDownload ? "<p>You can download published videos from the media library.</p>" : ""}${safeMessage}`,
+    details: [
+      { label: "Organisation", value: organization || "Not provided" },
+      { label: "Document access", value: allowDocumentAccess ? "Granted" : "Not granted" },
+      { label: "Video downloads", value: allowVideoDownload ? "Allowed" : "Not allowed" },
+      { label: "Access expires (UTC)", value: expiry },
+    ],
     ctaLabel: "View player media",
     ctaUrl: url,
     footerNote: "This personal access link is time-limited. Please do not forward it.",

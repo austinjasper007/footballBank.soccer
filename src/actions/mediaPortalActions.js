@@ -341,7 +341,16 @@ export async function setMediaContactConsent(playerId, confirmed) {
 
 export async function sendMediaShare(input) {
   const admin = await requireRole("admin");
-  const { playerId, recipientName, recipientEmail, organization, customMessage, expiresAt } = input || {};
+  const {
+    playerId,
+    recipientName,
+    recipientEmail,
+    organization,
+    customMessage,
+    expiresAt,
+    allowDocumentAccess,
+    allowVideoDownload,
+  } = input || {};
   if (!playerId || !recipientName || !recipientEmail || !expiresAt) throw new Error("Player, recipient details, and expiry are required.");
   const expiry = new Date(expiresAt);
   if (Number.isNaN(expiry.valueOf()) || expiry <= new Date()) throw new Error("Expiry must be a future UTC date and time.");
@@ -375,8 +384,30 @@ export async function sendMediaShare(input) {
   const rawToken = crypto.randomBytes(32).toString("base64url");
   const url = `${portalUrl()}/p/${rawToken}`;
   // Send first: a failed provider request never creates an active access record.
-  await sendMediaAccessEmail({ to: recipientEmail, recipientName, playerName: `${player.firstName} ${player.lastName}`, organization, customMessage, expiresAt: expiry, url });
-  const share = await MediaShare.create({ tokenHash: tokenHash(rawToken), playerId, recipientName, recipientEmail: recipientEmail.toLowerCase(), organization, customMessage, sentBy: admin.id, sentAt: new Date(), expiresAt: expiry });
+  await sendMediaAccessEmail({
+    to: recipientEmail,
+    recipientName,
+    playerName: `${player.firstName} ${player.lastName}`,
+    organization,
+    customMessage,
+    expiresAt: expiry,
+    allowDocumentAccess: allowDocumentAccess === true,
+    allowVideoDownload: allowVideoDownload === true,
+    url,
+  });
+  const share = await MediaShare.create({
+    tokenHash: tokenHash(rawToken),
+    playerId,
+    recipientName,
+    recipientEmail: recipientEmail.toLowerCase(),
+    organization,
+    customMessage,
+    allowDocumentAccess: allowDocumentAccess === true,
+    allowVideoDownload: allowVideoDownload === true,
+    sentBy: admin.id,
+    sentAt: new Date(),
+    expiresAt: expiry,
+  });
   console.info(JSON.stringify({ event: "media.share.sent", shareId: String(share._id), playerId, adminId: admin.id }));
   return { id: String(share._id), expiresAt: share.expiresAt, status: share.status };
 }
@@ -501,6 +532,8 @@ export async function getMediaPortalLibrary(playerId) {
       sentAt: item.sentAt,
       expiresAt: item.expiresAt,
       status: item.status,
+      allowDocumentAccess: Boolean(item.allowDocumentAccess),
+      allowVideoDownload: Boolean(item.allowVideoDownload),
       firstOpenedAt: item.firstOpenedAt || null,
       lastOpenedAt: item.lastOpenedAt || null,
     })),

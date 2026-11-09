@@ -19,6 +19,7 @@ import {
   X,
 } from "lucide-react";
 import ResumeRequestForm from "./ResumeRequestForm";
+import PlayerDocuments from "@/components/PlayerDocuments";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 import { formatPhoneNumber } from "@/lib/formatPhoneNumber";
 
@@ -27,6 +28,8 @@ const sections = ["overview", "media", "stats", "career", "contact"];
 export default function PlayerMedia({
   player,
   canViewDetails,
+  canViewDocuments,
+  canDownloadMedia,
   canDownloadResume,
   lang,
   initialSection,
@@ -51,6 +54,9 @@ export default function PlayerMedia({
     ...(player.videoAdditional || []),
   ].filter(Boolean);
   const fullName = `${player.firstName} ${player.lastName}`;
+  const visibleSections = canViewDocuments
+    ? [...sections, "documentation"]
+    : sections;
 
   const handleResumeDownload = async () => {
     setIsDownloadingResume(true);
@@ -160,7 +166,7 @@ export default function PlayerMedia({
           className="flex gap-2 overflow-x-auto border-b border-divider"
           aria-label="Player profile sections"
         >
-          {sections.map((section) => (
+          {visibleSections.map((section) => (
             <button
               key={section}
               type="button"
@@ -213,6 +219,12 @@ export default function PlayerMedia({
                 </div>
               </dl>
             </div>
+          </section>
+        )}
+
+        {activeSection === "documentation" && canViewDocuments && (
+          <section className="mt-10">
+            <PlayerDocuments playerId={player.id} />
           </section>
         )}
 
@@ -273,14 +285,25 @@ export default function PlayerMedia({
                       <video
                         src={video}
                         controls
+                        controlsList="nodownload"
                         preload="metadata"
                         className="aspect-video w-full bg-primary-navy"
                       />
-                      <p className="p-4 text-sm font-semibold">
-                        {index === 0
-                          ? "Primary highlights"
-                          : `Additional video ${index}`}
-                      </p>
+                      <div className="flex items-center justify-between gap-4 p-4">
+                        <p className="text-sm font-semibold">
+                          {index === 0
+                            ? "Primary highlights"
+                            : `Additional video ${index}`}
+                        </p>
+                        {canDownloadMedia && (
+                          <a
+                            href={`/api/players/${encodeURIComponent(player.id)}/videos/${index}`}
+                            className="shrink-0 text-sm font-semibold text-primary-action hover:underline"
+                          >
+                            Download
+                          </a>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>

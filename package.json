@@ -48,6 +48,7 @@
     "bcryptjs": "^3.0.2",
     "class-variance-authority": "^0.7.1",
     "date-fns": "^4.1.0",
+    "fflate": "^0.8.3",
     "firebase": "^12.0.0",
     "hostinger-api-mcp": "^1.63.4",
     "jose": "^6.1.0",

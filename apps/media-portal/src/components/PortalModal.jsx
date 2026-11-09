@@ -11,6 +11,7 @@ export default function PortalModal({
   loading = false,
   onClose,
   onVideoPlay,
+  downloadHref,
 }) {
   const dialogRef = useRef(null);
   const iframeRef = useRef(null);
@@ -132,6 +133,13 @@ export default function PortalModal({
             <img src={src} alt={title} />
           )}
         </div>
+        {type === "video" && downloadHref && (
+          <footer className="viewer-modal-actions">
+            <a href={downloadHref} rel="noreferrer" referrerPolicy="no-referrer">
+              Download video
+            </a>
+          </footer>
+        )}
       </section>
     </dialog>
   );

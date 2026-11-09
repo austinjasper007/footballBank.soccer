@@ -9,6 +9,7 @@ const fallbackViewerSessions = new Map();
 const NAV_ITEMS = [
   { id: "media", label: "Media" },
   { id: "profile", label: "Profile" },
+  { id: "documentation", label: "Documentation" },
   { id: "playlists", label: "Playlists" },
 ];
 
@@ -128,6 +129,7 @@ function VideoGallery({
   initialPage = 1,
   initialVideoId = "",
   initialPhotoIndex = null,
+  allowVideoDownload = false,
 }) {
   const [mediaType, setMediaType] = useState(initialMediaType);
   const [collection, setCollection] = useState(initialCollection);
@@ -277,6 +279,9 @@ function VideoGallery({
           description={[selectedVideo.season, selectedVideo.competition, selectedVideo.opponent]
             .filter(Boolean)
             .join(" · ")}
+          downloadHref={allowVideoDownload
+            ? `/api/p/${encodeURIComponent(token)}/media/${encodeURIComponent(selectedVideo.id)}/download`
+            : ""}
           onClose={closeViewer}
         />
       )}
@@ -335,6 +340,150 @@ function VideoGallery({
           <span className="empty-state-mark">{mediaType === "videos" ? "▶" : "FB"}</span>
           <h3>{mediaType === "videos" ? "No footage in this collection yet" : "No player photos available"}</h3>
           <p>{mediaType === "videos" ? "Published matches and highlights will appear here." : "Player gallery images will appear here when available."}</p>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function formatDocumentSize(value) {
+  if (!Number.isFinite(value) || value <= 0) return "Size unavailable";
+  if (value < 1024) return `${value} B`;
+  const units = ["KB", "MB", "GB"];
+  let size = value / 1024;
+  let unitIndex = 0;
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024;
+    unitIndex += 1;
+  }
+  return `${size.toFixed(size < 10 ? 1 : 0)} ${units[unitIndex]}`;
+}
+
+function DocumentationTab({ token, playerName }) {
+  const [documents, setDocuments] = useState([]);
+  const [currentFolder, setCurrentFolder] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const controller = new AbortController();
+    async function loadDocuments() {
+      try {
+        const response = await fetch(`/api/p/${encodeURIComponent(token)}/documents`, {
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || "Player documents could not be loaded.");
+        if (!Array.isArray(result.documents)) throw new Error("The document service returned an invalid response.");
+        setDocuments(result.documents);
+      } catch (loadError) {
+        if (!controller.signal.aborted) {
+          setError(loadError instanceof Error ? loadError.message : "Player documents could not be loaded.");
+        }
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    }
+    loadDocuments();
+    return () => controller.abort();
+  }, [token]);
+
+  const folderNames = new Set();
+  const currentFiles = [];
+  const prefix = currentFolder ? `${currentFolder}/` : "";
+  for (const document of documents) {
+    const folderPath = document.folderPath || "";
+    if (folderPath === currentFolder) {
+      currentFiles.push(document);
+      continue;
+    }
+    if (!folderPath.startsWith(prefix)) continue;
+    const remainder = folderPath.slice(prefix.length);
+    if (remainder) folderNames.add(remainder.split("/")[0]);
+  }
+
+  const folderParts = currentFolder ? currentFolder.split("/") : [];
+  const archiveHref = `/api/p/${encodeURIComponent(token)}/documents/archive`;
+
+  return (
+    <section className="documentation-panel" aria-label="Player documentation">
+      <header className="documentation-header">
+        <div>
+          <p className="eyebrow">Private player files</p>
+          <h2>Documentation</h2>
+          <p>Shared documents for {playerName || "this player"}.</p>
+        </div>
+        <a
+          className={`documentation-archive${documents.length ? "" : " is-disabled"}`}
+          href={documents.length ? archiveHref : undefined}
+          aria-disabled={!documents.length}
+          rel="noreferrer"
+          referrerPolicy="no-referrer"
+        >
+          Download all as ZIP
+        </a>
+      </header>
+
+      <nav className="documentation-breadcrumbs" aria-label="Document folders">
+        <button type="button" onClick={() => setCurrentFolder("")}>Root</button>
+        {folderParts.map((part, index) => {
+          const path = folderParts.slice(0, index + 1).join("/");
+          return (
+            <span key={path}>
+              <span aria-hidden="true">/</span>
+              <button type="button" onClick={() => setCurrentFolder(path)}>{part}</button>
+            </span>
+          );
+        })}
+      </nav>
+
+      {loading ? (
+        <div className="documentation-empty" role="status">Loading shared documents…</div>
+      ) : error ? (
+        <div className="documentation-empty" role="alert">{error}</div>
+      ) : folderNames.size || currentFiles.length ? (
+        <div className="documentation-list">
+          {[...folderNames].sort((a, b) => a.localeCompare(b)).map((folderName) => {
+            const path = [currentFolder, folderName].filter(Boolean).join("/");
+            return (
+              <button
+                type="button"
+                className="documentation-entry documentation-folder"
+                key={path}
+                onClick={() => setCurrentFolder(path)}
+              >
+                <span className="documentation-entry-icon" aria-hidden="true">DIR</span>
+                <span className="documentation-entry-details">
+                  <strong>{folderName}</strong>
+                  <small>Folder</small>
+                </span>
+                <span className="documentation-entry-action" aria-hidden="true">Open</span>
+              </button>
+            );
+          })}
+          {currentFiles.map((document) => (
+            <a
+              className="documentation-entry documentation-file"
+              href={`/api/p/${encodeURIComponent(token)}/documents/${encodeURIComponent(document.id)}`}
+              key={document.id}
+              rel="noreferrer"
+              referrerPolicy="no-referrer"
+            >
+              <span className="documentation-entry-icon" aria-hidden="true">FILE</span>
+              <span className="documentation-entry-details">
+                <strong>{document.fileName}</strong>
+                <small>{document.mimeType} · {formatDocumentSize(document.fileSize)}</small>
+              </span>
+              <span className="documentation-entry-action" aria-hidden="true">Download</span>
+            </a>
+          ))}
+        </div>
+      ) : (
+        <div className="documentation-empty">
+          <span className="empty-state-mark" aria-hidden="true">FILE</span>
+          <h3>{documents.length ? "This folder is empty" : "No documents have been shared"}</h3>
+          <p>{documents.length ? "Choose another folder or return to the root folder." : "Documents shared with you will appear here."}</p>
         </div>
       )}
     </section>
@@ -660,6 +809,7 @@ export default function MediaExperience({
     initialPage: initialGalleryPage,
     initialVideoId,
     initialPhotoIndex,
+    allowVideoDownload: data.allowVideoDownload,
   };
   const contactUrl = new URL("https://footballbank.soccer/en/contact");
   if (playerName) contactUrl.searchParams.set("player", playerName);
@@ -688,7 +838,10 @@ export default function MediaExperience({
           </span>
         </a>
         <nav className="mini-nav" aria-label="Player portfolio">
-          {NAV_ITEMS.filter((item) => item.id !== "playlists" || playlists.length > 0).map((item) => (
+          {NAV_ITEMS.filter((item) =>
+            (item.id !== "playlists" || playlists.length > 0)
+            && (item.id !== "documentation" || data.allowDocumentAccess)
+          ).map((item) => (
             <Link
               key={item.id}
               href={`/p/${encodeURIComponent(token)}?view=${item.id}`}
@@ -749,6 +902,9 @@ export default function MediaExperience({
             onVideoPlay={reportVideoPlay}
             galleryOptions={galleryState}
           />
+        )}
+        {activePage === "documentation" && data.allowDocumentAccess && (
+          <DocumentationTab token={token} playerName={playerName} />
         )}
       </div>
 

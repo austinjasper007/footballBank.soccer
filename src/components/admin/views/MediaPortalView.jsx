@@ -7,6 +7,7 @@ import {
   ChevronDown,
   CircleAlert,
   Clock3,
+  FileArchive,
   Film,
   FileText,
   FolderSync,
@@ -34,6 +35,7 @@ import {
   updatePlayerMedia,
 } from "@/actions/mediaPortalActions";
 import MediaPlayerProfileForm from "@/components/admin/views/MediaPlayerProfileForm";
+import PlayerDocuments from "@/components/PlayerDocuments";
 import { useToast } from "@/hooks/use-toast";
 
 const MAX_UPLOAD_BYTES = 20 * 1024 * 1024 * 1024;
@@ -59,6 +61,7 @@ const mediaPortalTabs = [
   { id: "profile", label: "Player profile", icon: FileText },
   { id: "upload", label: "Upload", icon: UploadCloud },
   { id: "library", label: "Media library", icon: ListVideo },
+  { id: "documents", label: "Documentation", icon: FileArchive },
   { id: "invite", label: "Send invite", icon: Mail },
   { id: "shares", label: "Share history", icon: Users },
 ];
@@ -401,6 +404,8 @@ export default function MediaPortalView() {
     const data = Object.fromEntries(new FormData(form));
     try {
       data.expiresAt = new Date(String(data.expiresAt)).toISOString();
+      data.allowDocumentAccess = data.allowDocumentAccess === "on";
+      data.allowVideoDownload = data.allowVideoDownload === "on";
       await sendMediaShare({ playerId: selected, ...data });
       form.reset();
       setNotice("Private access email sent.");
@@ -607,7 +612,7 @@ export default function MediaPortalView() {
         <>
           <nav
             aria-label="Player media sections"
-            className="mb-5 grid grid-cols-2 gap-2 rounded-2xl border border-slate-200/80 bg-slate-100/80 p-2 sm:grid-cols-5"
+            className="mb-5 flex gap-1 overflow-x-auto rounded-2xl border border-slate-200/80 bg-slate-100/80 p-1 sm:grid sm:grid-cols-6"
           >
             {mediaPortalTabs.map(({ id, label, icon: Icon }) => (
               <button
@@ -615,13 +620,13 @@ export default function MediaPortalView() {
                 type="button"
                 aria-pressed={activeTab === id}
                 onClick={() => setActiveTab(id)}
-                className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition sm:text-sm ${
+                className={`inline-flex min-h-10 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-2 py-1.5 text-xs font-semibold transition sm:min-w-0 sm:gap-1 sm:px-1.5 ${
                   activeTab === id
                     ? "bg-white text-slate-900 shadow-sm ring-1 ring-slate-200"
                     : "text-slate-500 hover:bg-white/70 hover:text-slate-800"
                 }`}
               >
-                <Icon className="size-4 shrink-0" />
+                <Icon className="size-3.5 shrink-0" />
                 <span>{label}</span>
                 {id === "library" && (
                   <span className={`rounded-full px-1.5 py-0.5 text-[10px] ${activeTab === id ? "bg-blue-50 text-blue-700" : "bg-slate-200 text-slate-600"}`}>
@@ -639,6 +644,10 @@ export default function MediaPortalView() {
 
           <section hidden={activeTab !== "profile"}>
             <MediaPlayerProfileForm key={player.id} player={player} onSaved={refreshPlayers} />
+          </section>
+
+          <section hidden={activeTab !== "documents"}>
+            <PlayerDocuments key={player.id} playerId={player.id} canManage />
           </section>
 
           <section id="media-tab-upload" hidden={activeTab !== "upload"} className={sectionClass}>
@@ -981,6 +990,28 @@ export default function MediaPortalView() {
                     className="w-full resize-y rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 shadow-sm transition placeholder:text-slate-400 hover:border-slate-300 focus:!outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500"
                   />
                 </label>
+                <label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <input
+                    type="checkbox"
+                    name="allowDocumentAccess"
+                    className="mt-1 size-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span>
+                    <span className="block text-sm font-semibold text-slate-900">Allow document access</span>
+                    <span className="mt-1 block text-xs text-slate-500">Show the Documentation tab and allow this recipient to download shared files.</span>
+                  </span>
+                </label>
+                <label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <input
+                    type="checkbox"
+                    name="allowVideoDownload"
+                    className="mt-1 size-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span>
+                    <span className="block text-sm font-semibold text-slate-900">Allow video downloads</span>
+                    <span className="mt-1 block text-xs text-slate-500">Requires Bunny advanced CDN token authentication (HMAC-SHA256), MP4 fallback, and BUNNY_STREAM_CDN_TOKEN_AUTH_KEY.</span>
+                  </span>
+                </label>
               </div>
               <div className="flex flex-col gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
                 <span className="inline-flex items-center gap-2 text-xs text-slate-500">
@@ -1069,6 +1100,14 @@ export default function MediaPortalView() {
                         First opened: {share.firstOpenedAt ? new Date(share.firstOpenedAt).toLocaleString() : "Not opened"}
                         {" · "}
                         Last opened: {share.lastOpenedAt ? new Date(share.lastOpenedAt).toLocaleString() : "—"}
+                      </p>
+                      <p className="mt-2 flex flex-wrap gap-1.5">
+                        <span className={`rounded-full px-2 py-1 text-[10px] font-semibold ${share.allowDocumentAccess ? "bg-blue-50 text-blue-700" : "bg-slate-100 text-slate-500"}`}>
+                          Documents {share.allowDocumentAccess ? "allowed" : "not allowed"}
+                        </span>
+                        <span className={`rounded-full px-2 py-1 text-[10px] font-semibold ${share.allowVideoDownload ? "bg-violet-50 text-violet-700" : "bg-slate-100 text-slate-500"}`}>
+                          Video downloads {share.allowVideoDownload ? "allowed" : "not allowed"}
+                        </span>
                       </p>
                     </div>
                   </div>

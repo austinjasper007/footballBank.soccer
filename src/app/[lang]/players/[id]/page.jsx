@@ -7,6 +7,7 @@ import {
 import { trackPlayerProfileView } from "@/actions/viewTrackingActions";
 import { getDictionary } from "@/lib/dictionaries";
 import { generateMetadata as generateSEOMetadata } from "@/lib/seo";
+import { getPlayerPrivateAccess } from "@/lib/playerPrivateAccess";
 import PlayerMedia from "./PlayerMedia";
 
 export async function generateMetadata({ params }) {
@@ -32,10 +33,15 @@ export default async function PlayerPage({ params, searchParams }) {
   await trackPlayerProfileView(id, lang);
 
   let access = { profileAccess: false, cvAccess: false };
+  let privateFileAccess = { status: 401 };
   try {
-    access = await getPlayerAccess(id);
+    [access, privateFileAccess] = await Promise.all([
+      getPlayerAccess(id),
+      getPlayerPrivateAccess(id),
+    ]);
   } catch {
     access = { profileAccess: false, cvAccess: false };
+    privateFileAccess = { status: 401 };
   }
   const privateDetails = access.profileAccess
     ? await getAuthorizedPlayerDetails(id)
@@ -62,9 +68,11 @@ export default async function PlayerPage({ params, searchParams }) {
     <PlayerMedia
       player={approvedPlayer}
       canViewDetails={canViewDetails}
+      canViewDocuments={privateFileAccess.status === 200}
+      canDownloadMedia={privateFileAccess.status === 200}
       canDownloadResume={access.cvAccess}
       lang={lang}
-      initialSection={tab === "media" ? "media" : "overview"}
+      initialSection={tab === "media" ? "media" : tab === "documentation" && privateFileAccess.status === 200 ? "documentation" : "overview"}
       id={"highlights"}
     />
   );

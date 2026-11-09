@@ -115,7 +115,7 @@ export async function getActivePortalShare(token) {
     { _id: existingShare._id, status: "ACTIVE", expiresAt: { $gt: now } },
     { $min: { firstOpenedAt: now }, $set: { lastOpenedAt: now } },
     { new: true },
-  ).select("_id playerId expiresAt").lean();
+  ).select("_id playerId expiresAt allowDocumentAccess allowVideoDownload").lean();
   return share || null;
 }
 
@@ -189,5 +189,7 @@ export async function getPortalProfile(token) {
     media,
     playlists: playlists.map((item) => ({ id: String(item._id), title: item.title })),
     shareExpiresAt: share.expiresAt,
+    allowDocumentAccess: Boolean(share.allowDocumentAccess),
+    allowVideoDownload: Boolean(share.allowVideoDownload),
   };
 }

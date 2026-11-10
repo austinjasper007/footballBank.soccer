@@ -56,14 +56,39 @@ export async function GET(_request, { params }) {
     const cdnHostname = process.env.BUNNY_STREAM_CDN_HOSTNAME || (
       libraryId ? `vz-${libraryId}.b-cdn.net` : ""
     );
+    const cdnTokenKey = process.env.BUNNY_STREAM_CDN_TOKEN_AUTH_KEY || process.env.BUNNY_CDN_TOKEN_AUTH_KEY;
+    if (!cdnTokenKey) {
+      console.error("Bunny CDN video downloads are not configured: BUNNY_STREAM_CDN_TOKEN_AUTH_KEY is missing.");
+      return Response.json({ error: "Secure video downloads are not configured. Ask the administrator to configure Bunny CDN token authentication for the media portal." }, {
+        status: 503,
+        headers: noStoreHeaders,
+      });
+    }
+
+    if (!cdnHostname) {
+      console.error("Bunny CDN video downloads are not configured: no CDN hostname or library ID is set.");
+      return Response.json({ error: "Secure video downloads are not configured. Ask the administrator to configure the Bunny CDN hostname." }, {
+        status: 503,
+        headers: noStoreHeaders,
+      });
+    }
+
+    if (!share.expiresAt || new Date(share.expiresAt).getTime() <= Date.now()) {
+      return Response.json({ error: "This private link has expired." }, {
+        status: 403,
+        headers: noStoreHeaders,
+      });
+    }
+
     const signedDownload = createSignedVideoDownloadUrl({
       cdnHostname,
-      tokenKey: process.env.BUNNY_STREAM_CDN_TOKEN_AUTH_KEY || process.env.BUNNY_CDN_TOKEN_AUTH_KEY,
+      tokenKey: cdnTokenKey,
       videoId: asset.bunnyVideoId,
       shareExpiresAt: share.expiresAt,
     });
     if (!signedDownload) {
-      return Response.json({ error: "Secure video downloads are not configured or this share has expired." }, {
+      console.error("Bunny CDN video download URL could not be signed; check the CDN hostname and video ID configuration.");
+      return Response.json({ error: "Secure video downloads could not be configured. Ask the administrator to check the Bunny CDN hostname and video settings." }, {
         status: 503,
         headers: noStoreHeaders,
       });

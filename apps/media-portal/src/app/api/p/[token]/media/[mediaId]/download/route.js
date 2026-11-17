@@ -52,10 +52,7 @@ export async function GET(_request, { params }) {
       });
     }
 
-    const libraryId = process.env.BUNNY_STREAM_LIBRARY_ID || process.env.BUNNY_LIBRARY_ID;
-    const cdnHostname = process.env.BUNNY_STREAM_CDN_HOSTNAME || (
-      libraryId ? `vz-${libraryId}.b-cdn.net` : ""
-    );
+    const cdnHostname = process.env.BUNNY_STREAM_CDN_HOSTNAME || process.env.BUNNY_CDN_HOSTNAME;
     const cdnTokenKey = process.env.BUNNY_STREAM_CDN_TOKEN_AUTH_KEY || process.env.BUNNY_CDN_TOKEN_AUTH_KEY;
     if (!cdnTokenKey) {
       console.error("Bunny CDN video downloads are not configured: BUNNY_STREAM_CDN_TOKEN_AUTH_KEY is missing.");
@@ -66,8 +63,8 @@ export async function GET(_request, { params }) {
     }
 
     if (!cdnHostname) {
-      console.error("Bunny CDN video downloads are not configured: no CDN hostname or library ID is set.");
-      return Response.json({ error: "Secure video downloads are not configured. Ask the administrator to configure the Bunny CDN hostname." }, {
+      console.error("Bunny CDN video downloads are not configured: BUNNY_STREAM_CDN_HOSTNAME is missing.");
+      return Response.json({ error: "Secure video downloads are not configured. Ask the administrator to set the Bunny CDN hostname in BUNNY_STREAM_CDN_HOSTNAME." }, {
         status: 503,
         headers: noStoreHeaders,
       });

@@ -48,7 +48,9 @@ export function createSignedVideoDownloadUrl({
   }
 
   const path = `/${encodeURIComponent(videoId)}/play_720p.mp4`;
-  const token = `HS256-${crypto.createHmac("sha256", tokenKey).update(`${path}${expires}`).digest("base64url")}`;
+  const token = crypto.createHash("md5")
+    .update(`${tokenKey}${path}${expires}`)
+    .digest("base64url");
   const url = new URL(path, baseUrl);
   url.searchParams.set("token", token);
   url.searchParams.set("expires", String(expires));

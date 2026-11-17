@@ -1009,7 +1009,7 @@ export default function MediaPortalView() {
                   />
                   <span>
                     <span className="block text-sm font-semibold text-slate-900">Allow video downloads</span>
-                    <span className="mt-1 block text-xs text-slate-500">Requires Bunny advanced CDN token authentication (HMAC-SHA256), MP4 fallback, and BUNNY_STREAM_CDN_TOKEN_AUTH_KEY.</span>
+                    <span className="mt-1 block text-xs text-slate-500">Requires Bunny Pull Zone Token Authentication, MP4 fallback, BUNNY_STREAM_CDN_TOKEN_AUTH_KEY, and BUNNY_STREAM_CDN_HOSTNAME.</span>
                   </span>
                 </label>
               </div>

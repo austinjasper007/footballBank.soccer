@@ -36,7 +36,7 @@ const nextConfig = {
   },
   experimental: {
     agentUpgrade: "security",
-    serverActions: {    
+    serverActions: {
       // Add properties as needed, e.g.
       bodySizeLimit: '10MB', // or some other valid SizeLimit value
       allowedOrigins: ['https://localhost:3000', 'https://www.footballbank.soccer'], // or some other valid string[]

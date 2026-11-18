@@ -35,6 +35,7 @@ const nextConfig = {
     minimumCacheTTL: 60,
   },
   experimental: {
+    agentUpgrade: "security",
     serverActions: {
       // Add properties as needed, e.g.
       bodySizeLimit: '10MB', // or some other valid SizeLimit value

@@ -1,51 +1,43 @@
 # Hosting FootballBank on Vercel
 
-This repository contains two independent Next.js applications in one Git repository:
+This repository contains two Next.js applications configured as services in one Vercel project:
 
-| Vercel project | Root Directory | Production domain |
-| --- | --- | --- |
-| FootballBank main website and admin | `.` (repository root) | `footballbank.soccer` and optionally `www.footballbank.soccer` |
-| Private media portal | `apps/media-portal` | `media.footballbank.soccer` |
+| Service | Root | Production host | Public routes |
+| --- | --- | --- | --- |
+| `app` | `.` (repository root) | `footballbank.soccer`, `www.footballbank.soccer`, and other hosts | All paths on hosts other than `media.footballbank.soccer` |
+| `media-portal` | `apps/media-portal` | `media.footballbank.soccer` | All paths on `media.footballbank.soccer` |
 
-Create **two Vercel projects** connected to the same GitHub repository. Each project builds only its own Next.js app. The main app handles admin access, media publishing and Bunny uploads; the portal serves recipient links and generates signed Bunny playback access. Both apps currently connect to MongoDB using `DATABASE_URL`.
+The root [vercel.json](../vercel.json) builds both services independently and routes requests by hostname. Keep both hostnames attached to the same Vercel project. The main app handles admin access, media publishing and Bunny uploads; the portal serves recipient-specific, expiring player-media links. Both apps connect to MongoDB using `DATABASE_URL`.
+
+Neither service makes server-to-server requests to the other, so no service binding is configured. The main app places the public portal URL in invitation emails (`MEDIA_PORTAL_URL`); the portal calls its own APIs using same-origin relative URLs. These do not require a binding.
 
 ## Before deploying
 
 1. Make sure the latest working code is pushed to the Git branch you intend to deploy.
 2. Confirm you can access the MongoDB database from a hosted application. Use MongoDB Atlas or another managed MongoDB service; do not run MongoDB on the Vercel filesystem.
 3. Keep your local `.env`, `.env.local`, and `apps/media-portal/.env` files out of Git. **Do not upload or commit those files.** Enter required values individually in Vercel's Environment Variables settings.
-4. Have access to the DNS provider for `footballbank.soccer`, Resend, Firebase, Stripe (if using payments), and Bunny Stream.
+4. Have access to the DNS provider for `footballbank.soccer` and `media.footballbank.soccer`, Resend, Firebase, Stripe (if using payments), and Bunny Stream.
 5. Decide how Preview deployments should work. Do not let a Preview deployment use production credentials or send real media invites by accident. Use staging services and a separate staging database, or restrict testing to Production deployments.
 
-## Create the main website project
+## Create the Vercel project
 
 1. Sign in at [Vercel](https://vercel.com/) and select the account/team that should own the deployments.
 2. Select **Add New → Project**, import `austinjasper007/footballBank.soccer`, and configure:
-   - **Root Directory:** `.` (repository root).
+   - **Root Directory:** `.` (repository root). Do not set the project root to `apps/media-portal`; the service roots in `vercel.json` select each app.
    - **Framework Preset:** Next.js (normally detected automatically).
-   - **Build Command:** use the project default. The repository build script is `npm run build` and runs `next build --webpack`.
-   - **Install Command:** leave automatic detection enabled initially; the repository contains an npm lockfile.
-   - **Output Directory:** leave the Next.js default.
-3. Add the main-app Environment Variables listed below. Add each variable to the appropriate Vercel environment; use production values only in **Production**.
-4. Deploy and inspect the build logs. Do not add a custom output directory or run `next start` as the build command.
-
-## Create the private media portal project
-
-1. From the Vercel dashboard, add another project and import the same GitHub repository.
-2. Set **Root Directory** to `apps/media-portal`.
-3. Keep the Next.js framework, build command, output directory and package-manager detection on their defaults unless the deployment logs identify a specific setting that needs correction. The app's package script is `npm run build`.
-4. Add the media-portal Environment Variables listed below. Use the same production MongoDB database as the main app if you intend both apps to serve the same publications, shares and media records.
-5. Deploy and check the build logs.
-
-Vercel's monorepo support lets both projects watch the same repository. Initially, expect a push to trigger deployments for both projects. Once both projects are stable, configure Vercel's monorepo deployment-skipping options if you want to avoid building an app when only the other app changed.
+   - **Build Command:** use the project configuration in `vercel.json` and the package scripts; do not override it with a single-app custom command.
+   - **Install Command** and **Output Directory:** leave the Vercel defaults.
+3. Configure the project-level Environment Variables below, using Production values only in **Production** and safe staging values in **Preview**.
+4. Deploy and inspect the logs for both services. Each service installs and builds from its own configured root; do not run `next start` as a build command.
+5. Test `footballbank.soccer` and `media.footballbank.soccer` after adding the domains. Use `vercel dev` to run the services together locally.
 
 ## Environment variables
 
 Use the real values from your secret manager or local environment files, but enter them directly into Vercel. Never place secret values in this document, Git, or a `NEXT_PUBLIC_` variable. Select Production, Preview, and Development scopes deliberately. Redeploy after changing variables; `NEXT_PUBLIC_` values are compiled into the browser bundle at build time.
 
-### Main website project (`.`)
+### Main website service (`.`)
 
-Set these for the main production app:
+Add the following project environment variables for the main service. Vercel project environment variables are shared across services; the portal also needs the applicable MongoDB, Bunny playback, and Resend values listed below.
 
 | Variable | Purpose |
 | --- | --- |
@@ -69,7 +61,7 @@ Set these for the main production app:
 
 If the Stripe payment integration is active in production, also configure `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` from the correct live Stripe account. Do not use test keys for production or expose secret keys with the `NEXT_PUBLIC_` prefix.
 
-### Media portal project (`apps/media-portal`)
+### Media portal service (`apps/media-portal`)
 
 Set:
 
@@ -78,22 +70,25 @@ Set:
 | `DATABASE_URL` | The MongoDB connection string for the same database used by the main app. |
 | `BUNNY_STREAM_LIBRARY_ID` **or** `BUNNY_LIBRARY_ID` | The Bunny Stream library containing the portal videos. |
 | `BUNNY_STREAM_TOKEN_AUTH_KEY` **or** `BUNNY_TOKEN_AUTH_KEY` | Bunny Stream token-authentication key used to sign playback access. |
+| `BUNNY_STREAM_CDN_TOKEN_AUTH_KEY` | Bunny Pull Zone URL Token Authentication key, required for invited video downloads. This is separate from the Stream embed token-authentication key above. |
+| `BUNNY_STREAM_CDN_HOSTNAME` | Bunny Pull Zone hostname for Stream video files, for example `vz-example.b-cdn.net` (hostname only; no scheme or path). |
 | `RESEND_API_KEY` | Resend API key used to email private-portal visits and video playback starts to `media@footballbank.soccer`. |
 
-The portal does not need the Bunny write API key for its current playback flow. Do not copy every main-app secret into the portal project without a code requirement.
+To enable downloads, turn on Token Authentication (leave Token IP Validation off) for the Bunny Pull Zone serving the Stream library, enable MP4 fallback encoding, and configure both the Pull Zone's URL Token Authentication key and CDN hostname in the media portal environment. Do not reuse `BUNNY_STREAM_TOKEN_AUTH_KEY`; it signs embed playback, not CDN file requests. Redeploy the portal after adding or changing the variables.
+
+The portal does not need the Bunny write API key for its current playback flow. Where your Vercel plan/settings allow service-specific environment variables, scope secrets to the service that uses them; otherwise keep project variables limited to the required values and do not expose secrets through `NEXT_PUBLIC_` variables.
 
 The sender for media invites is configured in the app as `FootballBank Media <media@footballbank.soccer>`. Verify `footballbank.soccer` as a sending domain in Resend and publish the DNS records Resend requests. This is a sender identity; it does not by itself create a mailbox. Preserve existing MX, SPF, DKIM, and DMARC records when configuring website DNS.
 
 ## Connect the domains
 
-Do this after both projects have a successful deployment:
+Do this after the services-based project has a successful deployment:
 
-1. In the main Vercel project, open **Settings → Domains** and add `footballbank.soccer`. Add `www.footballbank.soccer` if you want the `www` variant and choose one canonical host/redirect.
-2. In the media portal project, open **Settings → Domains** and add `media.footballbank.soccer`.
-3. Follow the exact DNS records Vercel displays for each domain. DNS requirements can differ depending on the registrar and existing records; do not assume an old A record or CNAME is correct.
-4. At your DNS provider, update only the website records Vercel identifies. **Do not remove or overwrite email-related MX, SPF, DKIM, or DMARC records.**
-5. Wait for Vercel to confirm the domains and TLS certificates.
-6. Confirm `MEDIA_PORTAL_URL` in the main project is exactly `https://media.footballbank.soccer`, then redeploy the main project so the deployment uses that value.
+1. In the Vercel project, open **Settings → Domains** and add `footballbank.soccer` and `media.footballbank.soccer`. Add `www.footballbank.soccer` if you want the `www` variant and choose one canonical host/redirect.
+2. Follow the exact DNS records Vercel displays for each domain. DNS requirements can differ depending on the registrar and existing records; do not assume an old A record or CNAME is correct.
+3. At your DNS provider, update only the website records Vercel identifies. **Do not remove or overwrite email-related MX, SPF, DKIM, or DMARC records.**
+4. Wait for Vercel to confirm the domains and TLS certificates.
+5. Set `MEDIA_PORTAL_URL` to exactly `https://media.footballbank.soccer` (an origin only, with no path), then redeploy so invitation emails use the public portal hostname.
 
 ## External service and production checks
 
@@ -115,18 +110,18 @@ Vercel creates Preview deployments for non-production branches and pull requests
 For safe previews:
 
 1. Create a separate staging MongoDB database and separate Bunny/Firebase/Resend credentials where practical.
-2. Use staging environment variables under **Preview** in both Vercel projects.
-3. Give the preview portal a stable staging domain (for example `media-staging.footballbank.soccer`) and set the main app's Preview `MEDIA_PORTAL_URL` to that origin.
+2. Use staging environment variables under **Preview** in the Vercel project.
+3. The current hostname rule routes only `media.footballbank.soccer` to the portal. For a stable staging portal hostname such as `media-staging.footballbank.soccer`, add an explicit host rewrite to `media-portal` before the catch-all app rewrite, and set Preview `MEDIA_PORTAL_URL` to that public origin.
 4. Keep Preview email/API credentials unable to send real invitations or charge real customers.
 5. If staging is not ready, limit production environment variables to Production and test after a controlled production deployment instead.
 
 ## Rollback
 
-Vercel keeps prior deployments. If a deployment fails or causes a production issue, use the Vercel project deployment page to promote a known-good deployment back to Production. Check both projects after a rollback: the main app and media portal are separate deployments, and their environment variables and domains are managed independently.
+Vercel keeps prior deployments. If a deployment fails or causes a production issue, use the Vercel project deployment page to promote a known-good deployment back to Production. The two services deploy together, so check both hostnames after a rollback.
 
 ## Is Vercel cost-effective for this startup?
 
-Vercel is the lowest-operations option: it builds both Next.js projects from Git, provides previews, domains, TLS and logs without managing a server. Pricing is usage-based beyond included plan quotas, so check the current [Vercel pricing](https://vercel.com/pricing) and set spend alerts.
+Vercel is the lowest-operations option: it builds both Next.js services from Git, provides previews, domains, TLS and logs without managing a server. Pricing is usage-based beyond included plan quotas, so check the current [Vercel pricing](https://vercel.com/pricing) and set spend alerts.
 
 As of **29 October 2026**, Vercel lists Hobby at $0/month and Pro at $20/month. Vercel's [Hobby terms](https://vercel.com/legal/terms#hobby-plan) restrict Hobby to personal or non-commercial use, so it is not the appropriate production plan for FootballBank as a startup. The terms also state that Vercel may use content on Hobby (and Pro trials) to train or improve AI/ML models. Since private player profiles can contain passport, birth-date, and injury information, use a paid plan, review its current data terms and privacy controls, and do not opt into model training for this project. Pro's included usage and any overages should be checked against expected traffic and media activity.
 
@@ -151,6 +146,8 @@ For any option, keep MongoDB managed, Bunny for video, and Firebase Storage for 
 ## Provider references
 
 - [Vercel monorepos](https://vercel.com/docs/monorepos)
+- [Vercel Services](https://vercel.com/docs/services)
+- [Vercel Services routing](https://vercel.com/docs/services/routing)
 - [Vercel build configuration and Root Directory](https://vercel.com/docs/builds/configure-a-build)
 - [Vercel environment variables](https://vercel.com/docs/environment-variables)
 - [Vercel custom domains](https://vercel.com/docs/domains/working-with-domains)

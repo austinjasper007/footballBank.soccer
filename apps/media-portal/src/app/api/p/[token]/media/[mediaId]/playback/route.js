@@ -25,7 +25,7 @@ export async function GET(_request, { params }) {
 
   const playback = createSignedEmbedUrl({
     libraryId: process.env.BUNNY_STREAM_LIBRARY_ID || process.env.BUNNY_LIBRARY_ID,
-    tokenKey: process.env.BUNNY_STREAM_TOKEN_AUTH_KEY || process.env.BUNNY_TOKEN_AUTH_KEY,
+    embedTokenKey: process.env.BUNNY_STREAM_TOKEN_AUTH_KEY || process.env.BUNNY_TOKEN_AUTH_KEY,
     videoId: media.bunnyVideoId,
     shareExpiresAt: data.shareExpiresAt,
   });

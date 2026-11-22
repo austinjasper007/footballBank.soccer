@@ -74,7 +74,7 @@ Set:
 | `BUNNY_STREAM_CDN_HOSTNAME` | Bunny Pull Zone hostname for Stream video files, for example `vz-example.b-cdn.net` (hostname only; no scheme or path). |
 | `RESEND_API_KEY` | Resend API key used to email private-portal visits and video playback starts to `media@footballbank.soccer`. |
 
-To enable downloads, turn on Token Authentication (leave Token IP Validation off) for the Bunny Pull Zone serving the Stream library, enable MP4 fallback encoding, and configure both the Pull Zone's URL Token Authentication key and CDN hostname in the media portal environment. Do not reuse `BUNNY_STREAM_TOKEN_AUTH_KEY`; it signs embed playback, not CDN file requests. Redeploy the portal after adding or changing the variables.
+To enable downloads, turn on **Basic URL Token Authentication** (leave Token IP Validation off) for the Bunny Pull Zone serving the Stream library, enable MP4 fallback encoding, and configure both the Pull Zone's URL Token Authentication key and CDN hostname in the media portal environment. The portal signs CDN URLs with Bunny's Basic MD5 token format; Advanced Token Authentication is not compatible. Do not reuse `BUNNY_STREAM_TOKEN_AUTH_KEY`; it signs embed playback, not CDN file requests. Redeploy the portal after adding or changing the variables.
 
 The portal does not need the Bunny write API key for its current playback flow. Where your Vercel plan/settings allow service-specific environment variables, scope secrets to the service that uses them; otherwise keep project variables limited to the required values and do not expose secrets through `NEXT_PUBLIC_` variables.
 

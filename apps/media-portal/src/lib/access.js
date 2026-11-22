@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import dbConnect from "@/lib/db";
 import { Asset, Media, Player, Playlist, Publication, Share } from "@/lib/models";
-import { createBunnyThumbnailUrl } from "@/lib/playback";
+import { createSignedThumbnailUrl } from "@/lib/playback";
 
 const hash = (value) => crypto.createHash("sha256").update(value).digest("hex");
 const playerFields = [
@@ -158,11 +158,13 @@ export async function getPortalProfile(token) {
       playlistIds: (item.playlistIds || []).map(String),
       isFeatured: Boolean(item.isFeatured),
       bunnyVideoId: assetById.get(String(item.assetId)).bunnyVideoId,
-      thumbnailUrl: createBunnyThumbnailUrl(
-        process.env.BUNNY_STREAM_LIBRARY_ID || process.env.BUNNY_LIBRARY_ID,
-        assetById.get(String(item.assetId)).bunnyVideoId,
-        assetById.get(String(item.assetId)).thumbnailFileName,
-      ),
+      thumbnailUrl: createSignedThumbnailUrl({
+        cdnHostname: process.env.BUNNY_STREAM_CDN_HOSTNAME || process.env.BUNNY_CDN_HOSTNAME,
+        cdnTokenKey: process.env.BUNNY_STREAM_CDN_TOKEN_AUTH_KEY || process.env.BUNNY_CDN_TOKEN_AUTH_KEY,
+        videoId: assetById.get(String(item.assetId)).bunnyVideoId,
+        thumbnailFileName: assetById.get(String(item.assetId)).thumbnailFileName,
+        shareExpiresAt: share.expiresAt,
+      }),
     }));
   if (!media.length) return null;
 

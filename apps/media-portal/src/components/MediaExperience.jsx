@@ -37,14 +37,19 @@ function VideoThumbnail({ item, selected, onClick }) {
             <span className="tile-fallback-mark">FB</span>
           </span>
         )}
-        <span className="tile-play" aria-hidden="true">▶</span>
+        <span className="tile-play" aria-hidden="true">
+          ▶
+        </span>
         <span className="tile-category">
           {item.category === "FULL_MATCH" ? "Match" : "Highlight"}
         </span>
       </span>
       <span className="tile-caption">
         <strong>{item.title}</strong>
-        <span>{[item.season, item.competition].filter(Boolean).join(" · ") || "Player footage"}</span>
+        <span>
+          {[item.season, item.competition].filter(Boolean).join(" · ") ||
+            "Player footage"}
+        </span>
       </span>
     </button>
   );
@@ -61,7 +66,9 @@ function Pagination({ page, pageCount, onPageChange }) {
       >
         Previous
       </button>
-      <span>Page {page} of {pageCount}</span>
+      <span>
+        Page {page} of {pageCount}
+      </span>
       <button
         type="button"
         onClick={() => onPageChange(page + 1)}
@@ -84,7 +91,10 @@ function getViewerSessionId(token) {
       sessionStorage.setItem(storageKey, sessionId);
     }
   } catch (error) {
-    console.warn("Browser session storage is unavailable for media activity tracking.", error);
+    console.warn(
+      "Browser session storage is unavailable for media activity tracking.",
+      error,
+    );
     sessionId = fallbackViewerSessions.get(storageKey);
     if (!sessionId) {
       sessionId = crypto.randomUUID();
@@ -98,17 +108,26 @@ function getViewerSessionId(token) {
 function reportPortalActivity(token, eventType, sessionId, mediaId = "") {
   if (!sessionId) return;
   async function sendActivity(attempt = 0) {
-    const response = await fetch(`/api/p/${encodeURIComponent(token)}/activity`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ eventType, sessionId, ...(mediaId ? { mediaId } : {}) }),
-      cache: "no-store",
-      keepalive: true,
-    });
+    const response = await fetch(
+      `/api/p/${encodeURIComponent(token)}/activity`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eventType,
+          sessionId,
+          ...(mediaId ? { mediaId } : {}),
+        }),
+        cache: "no-store",
+        keepalive: true,
+      },
+    );
     if (!response.ok) {
       const result = await response.json().catch(() => ({}));
       if (response.status === 503 && attempt === 0) return sendActivity(1);
-      throw new Error(result.error || "Could not record media portal activity.");
+      throw new Error(
+        result.error || "Could not record media portal activity.",
+      );
     }
   }
 
@@ -135,19 +154,26 @@ function VideoGallery({
   const [collection, setCollection] = useState(initialCollection);
   const [page, setPage] = useState(initialPage);
   const [selectedVideoId, setSelectedVideoId] = useState(initialVideoId);
-  const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(initialPhotoIndex);
+  const [selectedPhotoIndex, setSelectedPhotoIndex] =
+    useState(initialPhotoIndex);
   const [playbackUrl, setPlaybackUrl] = useState("");
   const [playbackError, setPlaybackError] = useState("");
   const [playbackLoading, setPlaybackLoading] = useState(false);
-  const filteredVideos = collection === "ALL"
-    ? items
-    : items.filter((item) => item.category === collection);
+  const filteredVideos =
+    collection === "ALL"
+      ? items
+      : items.filter((item) => item.category === collection);
   const pageItems = mediaType === "videos" ? filteredVideos : photos;
   const pageCount = Math.max(1, Math.ceil(pageItems.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
-  const visibleItems = pageItems.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
-  const selectedVideo = items.find((item) => item.id === selectedVideoId) || null;
-  const selectedPhoto = selectedPhotoIndex === null ? null : photos[selectedPhotoIndex];
+  const visibleItems = pageItems.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE,
+  );
+  const selectedVideo =
+    items.find((item) => item.id === selectedVideoId) || null;
+  const selectedPhoto =
+    selectedPhotoIndex === null ? null : photos[selectedPhotoIndex];
 
   useEffect(() => {
     if (!selectedVideo) {
@@ -170,7 +196,9 @@ function VideoGallery({
         );
         const result = await response.json();
         if (!response.ok) {
-          throw new Error(result.error || "Secure video playback could not be authorized.");
+          throw new Error(
+            result.error || "Secure video playback could not be authorized.",
+          );
         }
         if (typeof result.url !== "string" || !result.url) {
           throw new Error("The playback service returned an invalid response.");
@@ -178,9 +206,11 @@ function VideoGallery({
         setPlaybackUrl(result.url);
       } catch (error) {
         if (!controller.signal.aborted) {
-          setPlaybackError(error instanceof Error
-            ? error.message
-            : "Secure video playback could not be authorized.");
+          setPlaybackError(
+            error instanceof Error
+              ? error.message
+              : "Secure video playback could not be authorized.",
+          );
         }
       } finally {
         if (!controller.signal.aborted) setPlaybackLoading(false);
@@ -214,7 +244,9 @@ function VideoGallery({
         <div>
           <p className="eyebrow">Private media room</p>
           <h2>Player media</h2>
-          <p className="panel-description">Browse match footage, highlights, and player photos.</p>
+          <p className="panel-description">
+            Browse match footage, highlights, and player photos.
+          </p>
         </div>
         <div className="media-toolbar-actions">
           {showInterestCta && (
@@ -227,7 +259,9 @@ function VideoGallery({
               Interested in this player? Contact our team
             </a>
           )}
-          <span className="media-total">{items.length + photos.length} items</span>
+          <span className="media-total">
+            {items.length + photos.length} items
+          </span>
         </div>
       </div>
 
@@ -249,7 +283,11 @@ function VideoGallery({
           </button>
         </div>
         {mediaType === "videos" && (
-          <div className="collection-filter" role="group" aria-label="Video collection">
+          <div
+            className="collection-filter"
+            role="group"
+            aria-label="Video collection"
+          >
             {[
               { id: "ALL", label: "All videos" },
               { id: "FULL_MATCH", label: "Match" },
@@ -276,12 +314,18 @@ function VideoGallery({
           error={playbackError}
           loading={playbackLoading}
           onVideoPlay={() => onVideoPlay?.(selectedVideo.id)}
-          description={[selectedVideo.season, selectedVideo.competition, selectedVideo.opponent]
+          description={[
+            selectedVideo.season,
+            selectedVideo.competition,
+            selectedVideo.opponent,
+          ]
             .filter(Boolean)
             .join(" · ")}
-          downloadHref={allowVideoDownload
-            ? `/api/p/${encodeURIComponent(token)}/media/${encodeURIComponent(selectedVideo.id)}/download`
-            : ""}
+          downloadHref={
+            allowVideoDownload
+              ? `/api/p/${encodeURIComponent(token)}/media/${encodeURIComponent(selectedVideo.id)}/download`
+              : ""
+          }
           onClose={closeViewer}
         />
       )}
@@ -300,31 +344,33 @@ function VideoGallery({
           <div className="gallery-grid">
             {mediaType === "videos"
               ? visibleItems.map((item) => (
-                <VideoThumbnail
-                  key={item.id}
-                  item={item}
-                  selected={selectedVideo?.id === item.id}
-                  onClick={() => {
-                    setSelectedPhotoIndex(null);
-                    setSelectedVideoId(item.id);
-                  }}
-                />
-              ))
+                  <VideoThumbnail
+                    key={item.id}
+                    item={item}
+                    selected={selectedVideo?.id === item.id}
+                    onClick={() => {
+                      setSelectedPhotoIndex(null);
+                      setSelectedVideoId(item.id);
+                    }}
+                  />
+                ))
               : visibleItems.map((photo, index) => (
-                <button
-                  type="button"
-                  key={`${photo}-${index}`}
-                  className={`photo-tile${selectedPhoto === photo ? " is-selected" : ""}`}
-                  onClick={() => {
-                    setSelectedVideoId("");
-                    setSelectedPhotoIndex(index + (currentPage - 1) * PAGE_SIZE);
-                  }}
-                  aria-label={`View player photo ${index + 1 + (currentPage - 1) * PAGE_SIZE}`}
-                  aria-pressed={selectedPhoto === photo}
-                >
-                  <img src={photo} alt="" loading="lazy" />
-                </button>
-              ))}
+                  <button
+                    type="button"
+                    key={`${photo}-${index}`}
+                    className={`photo-tile${selectedPhoto === photo ? " is-selected" : ""}`}
+                    onClick={() => {
+                      setSelectedVideoId("");
+                      setSelectedPhotoIndex(
+                        index + (currentPage - 1) * PAGE_SIZE,
+                      );
+                    }}
+                    aria-label={`View player photo ${index + 1 + (currentPage - 1) * PAGE_SIZE}`}
+                    aria-pressed={selectedPhoto === photo}
+                  >
+                    <img src={photo} alt="" loading="lazy" />
+                  </button>
+                ))}
           </div>
           <Pagination
             page={currentPage}
@@ -337,9 +383,19 @@ function VideoGallery({
         </>
       ) : (
         <div className="empty-state">
-          <span className="empty-state-mark">{mediaType === "videos" ? "▶" : "FB"}</span>
-          <h3>{mediaType === "videos" ? "No footage in this collection yet" : "No player photos available"}</h3>
-          <p>{mediaType === "videos" ? "Published matches and highlights will appear here." : "Player gallery images will appear here when available."}</p>
+          <span className="empty-state-mark">
+            {mediaType === "videos" ? "▶" : "FB"}
+          </span>
+          <h3>
+            {mediaType === "videos"
+              ? "No footage in this collection yet"
+              : "No player photos available"}
+          </h3>
+          <p>
+            {mediaType === "videos"
+              ? "Published matches and highlights will appear here."
+              : "Player gallery images will appear here when available."}
+          </p>
         </div>
       )}
     </section>
@@ -369,17 +425,28 @@ function DocumentationTab({ token, playerName }) {
     const controller = new AbortController();
     async function loadDocuments() {
       try {
-        const response = await fetch(`/api/p/${encodeURIComponent(token)}/documents`, {
-          cache: "no-store",
-          signal: controller.signal,
-        });
+        const response = await fetch(
+          `/api/p/${encodeURIComponent(token)}/documents`,
+          {
+            cache: "no-store",
+            signal: controller.signal,
+          },
+        );
         const result = await response.json();
-        if (!response.ok) throw new Error(result.error || "Player documents could not be loaded.");
-        if (!Array.isArray(result.documents)) throw new Error("The document service returned an invalid response.");
+        if (!response.ok)
+          throw new Error(
+            result.error || "Player documents could not be loaded.",
+          );
+        if (!Array.isArray(result.documents))
+          throw new Error("The document service returned an invalid response.");
         setDocuments(result.documents);
       } catch (loadError) {
         if (!controller.signal.aborted) {
-          setError(loadError instanceof Error ? loadError.message : "Player documents could not be loaded.");
+          setError(
+            loadError instanceof Error
+              ? loadError.message
+              : "Player documents could not be loaded.",
+          );
         }
       } finally {
         if (!controller.signal.aborted) setLoading(false);
@@ -426,42 +493,61 @@ function DocumentationTab({ token, playerName }) {
       </header>
 
       <nav className="documentation-breadcrumbs" aria-label="Document folders">
-        <button type="button" onClick={() => setCurrentFolder("")}>Root</button>
+        <button type="button" onClick={() => setCurrentFolder("")}>
+          Root
+        </button>
         {folderParts.map((part, index) => {
           const path = folderParts.slice(0, index + 1).join("/");
           return (
             <span key={path}>
               <span aria-hidden="true">/</span>
-              <button type="button" onClick={() => setCurrentFolder(path)}>{part}</button>
+              <button type="button" onClick={() => setCurrentFolder(path)}>
+                {part}
+              </button>
             </span>
           );
         })}
       </nav>
 
       {loading ? (
-        <div className="documentation-empty" role="status">Loading shared documents…</div>
+        <div className="documentation-empty" role="status">
+          Loading shared documents…
+        </div>
       ) : error ? (
-        <div className="documentation-empty" role="alert">{error}</div>
+        <div className="documentation-empty" role="alert">
+          {error}
+        </div>
       ) : folderNames.size || currentFiles.length ? (
         <div className="documentation-list">
-          {[...folderNames].sort((a, b) => a.localeCompare(b)).map((folderName) => {
-            const path = [currentFolder, folderName].filter(Boolean).join("/");
-            return (
-              <button
-                type="button"
-                className="documentation-entry documentation-folder"
-                key={path}
-                onClick={() => setCurrentFolder(path)}
-              >
-                <span className="documentation-entry-icon" aria-hidden="true">DIR</span>
-                <span className="documentation-entry-details">
-                  <strong>{folderName}</strong>
-                  <small>Folder</small>
-                </span>
-                <span className="documentation-entry-action" aria-hidden="true">Open</span>
-              </button>
-            );
-          })}
+          {[...folderNames]
+            .sort((a, b) => a.localeCompare(b))
+            .map((folderName) => {
+              const path = [currentFolder, folderName]
+                .filter(Boolean)
+                .join("/");
+              return (
+                <button
+                  type="button"
+                  className="documentation-entry documentation-folder"
+                  key={path}
+                  onClick={() => setCurrentFolder(path)}
+                >
+                  <span className="documentation-entry-icon" aria-hidden="true">
+                    DIR
+                  </span>
+                  <span className="documentation-entry-details">
+                    <strong>{folderName}</strong>
+                    <small>Folder</small>
+                  </span>
+                  <span
+                    className="documentation-entry-action"
+                    aria-hidden="true"
+                  >
+                    Open
+                  </span>
+                </button>
+              );
+            })}
           {currentFiles.map((document) => (
             <a
               className="documentation-entry documentation-file"
@@ -470,20 +556,36 @@ function DocumentationTab({ token, playerName }) {
               rel="noreferrer"
               referrerPolicy="no-referrer"
             >
-              <span className="documentation-entry-icon" aria-hidden="true">FILE</span>
+              <span className="documentation-entry-icon" aria-hidden="true">
+                FILE
+              </span>
               <span className="documentation-entry-details">
                 <strong>{document.fileName}</strong>
-                <small>{document.mimeType} · {formatDocumentSize(document.fileSize)}</small>
+                <small>
+                  {document.mimeType} · {formatDocumentSize(document.fileSize)}
+                </small>
               </span>
-              <span className="documentation-entry-action" aria-hidden="true">Download</span>
+              <span className="documentation-entry-action" aria-hidden="true">
+                Download
+              </span>
             </a>
           ))}
         </div>
       ) : (
         <div className="documentation-empty">
-          <span className="empty-state-mark" aria-hidden="true">FILE</span>
-          <h3>{documents.length ? "This folder is empty" : "No documents have been shared"}</h3>
-          <p>{documents.length ? "Choose another folder or return to the root folder." : "Documents shared with you will appear here."}</p>
+          <span className="empty-state-mark" aria-hidden="true">
+            FILE
+          </span>
+          <h3>
+            {documents.length
+              ? "This folder is empty"
+              : "No documents have been shared"}
+          </h3>
+          <p>
+            {documents.length
+              ? "Choose another folder or return to the root folder."
+              : "Documents shared with you will appear here."}
+          </p>
         </div>
       )}
     </section>
@@ -491,9 +593,11 @@ function DocumentationTab({ token, playerName }) {
 }
 
 function profileValue(value) {
-  if (Array.isArray(value)) return value.map(profileValue).filter(Boolean).join(", ");
+  if (Array.isArray(value))
+    return value.map(profileValue).filter(Boolean).join(", ");
   if (typeof value === "boolean") return value ? "Yes" : "No";
-  if (typeof value === "string" || typeof value === "number") return String(value).trim();
+  if (typeof value === "string" || typeof value === "number")
+    return String(value).trim();
   return "";
 }
 
@@ -532,7 +636,12 @@ function ProfilePhotoGroup({ title, photos }) {
       <h3>{title}</h3>
       <div className="cv-photo-grid">
         {items.map((url, index) => (
-          <a key={`${url}-${index}`} href={url} target="_blank" rel="noreferrer">
+          <a
+            key={`${url}-${index}`}
+            href={url}
+            target="_blank"
+            rel="noreferrer"
+          >
             <img src={url} alt={`${title} ${index + 1}`} loading="lazy" />
           </a>
         ))}
@@ -546,7 +655,9 @@ function ProfileTab({ player }) {
   const personal = profile.personal || {};
   const playerDetails = profile.player || {};
   const club = profile.currentClub || {};
-  const career = Array.isArray(profile.footballHistory) ? profile.footballHistory : [];
+  const career = Array.isArray(profile.footballHistory)
+    ? profile.footballHistory
+    : [];
   const trials = Array.isArray(profile.trials) ? profile.trials : [];
   const photos = profile.photos || {};
   const hasProfilePhotos = [
@@ -556,8 +667,12 @@ function ProfileTab({ player }) {
     photos.currentClubKit,
     photos.recentMatchesTraining,
     player.imageUrl,
-  ].some((value) => Array.isArray(value) ? value.some(Boolean) : Boolean(value));
-  const name = personal.fullName || [player.firstName, player.lastName].filter(Boolean).join(" ");
+  ].some((value) =>
+    Array.isArray(value) ? value.some(Boolean) : Boolean(value),
+  );
+  const name =
+    personal.fullName ||
+    [player.firstName, player.lastName].filter(Boolean).join(" ");
   const portrait = photos.professionalHeadshot || player.headshotUrl;
 
   return (
@@ -565,14 +680,27 @@ function ProfileTab({ player }) {
       <header className="cv-heading">
         <div>
           <h2>{name}</h2>
-          <p>{[playerDetails.mainPosition || player.position, personal.nationality || player.country].filter(Boolean).join(" · ")}</p>
+          <p>
+            {[
+              playerDetails.mainPosition || player.position,
+              personal.nationality || player.country,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+          </p>
         </div>
         <span className="cv-status">Player profile</span>
       </header>
 
       <div className="cv-layout">
         <aside className="cv-sidebar">
-          {portrait && <img className="cv-portrait" src={portrait} alt={`${name} portrait`} />}
+          {portrait && (
+            <img
+              className="cv-portrait"
+              src={portrait}
+              alt={`${name} portrait`}
+            />
+          )}
           <section className="cv-sidebar-section">
             <p className="cv-section-label">Personal information</p>
             <dl className="cv-detail-list">
@@ -584,7 +712,10 @@ function ProfileTab({ player }) {
                 ["Passport expiry", "passportExpiry"],
                 ["Current city", "currentCityCountry"],
               ]).map(([label, value]) => (
-                <div key={label}><dt>{label}</dt><dd>{value}</dd></div>
+                <div key={label}>
+                  <dt>{label}</dt>
+                  <dd>{value}</dd>
+                </div>
               ))}
             </dl>
           </section>
@@ -600,7 +731,10 @@ function ProfileTab({ player }) {
                 ["Current jersey number", "currentJerseyNumber"],
                 ["Previous jersey numbers", "previousJerseyNumbers"],
               ]).map(([label, value]) => (
-                <div key={label}><dt>{label}</dt><dd>{value}</dd></div>
+                <div key={label}>
+                  <dt>{label}</dt>
+                  <dd>{value}</dd>
+                </div>
               ))}
             </dl>
           </section>
@@ -671,7 +805,10 @@ function ProfileTab({ player }) {
               ["Injury date", "injuryDate"],
               ["Returned to full team training", "returnToFullTraining"],
               ["Medical clearance date", "medicallyClearedDate"],
-              ["First competitive match after injury", "firstCompetitiveMatchAfter"],
+              [
+                "First competitive match after injury",
+                "firstCompetitiveMatchAfter",
+              ],
               ["Training without restrictions", "trainingWithoutRestrictions"],
               ["Playing without restrictions", "playingWithoutRestrictions"],
               ["Receiving current treatment", "currentTreatment"],
@@ -683,7 +820,10 @@ function ProfileTab({ player }) {
             {career.length ? (
               <div className="cv-repeat-list">
                 {career.map((entry, index) => (
-                  <article className="cv-repeat-entry" key={`${entry.academyOrClub || "club"}-${index}`}>
+                  <article
+                    className="cv-repeat-entry"
+                    key={`${entry.academyOrClub || "club"}-${index}`}
+                  >
                     <h3>{entry.academyOrClub || "Club / academy"}</h3>
                     <dl className="cv-detail-list">
                       {profileRows(entry, [
@@ -701,13 +841,18 @@ function ProfileTab({ player }) {
                         ["Reason for leaving", "reasonLeft"],
                         ["Federation registered", "federationRegistered"],
                       ]).map(([label, value]) => (
-                        <div key={label}><dt>{label}</dt><dd>{value}</dd></div>
+                        <div key={label}>
+                          <dt>{label}</dt>
+                          <dd>{value}</dd>
+                        </div>
                       ))}
                     </dl>
                   </article>
                 ))}
               </div>
-            ) : <p className="cv-muted">No football history has been added.</p>}
+            ) : (
+              <p className="cv-muted">No football history has been added.</p>
+            )}
           </ProfileSection>
 
           <ProfileSection
@@ -720,12 +865,17 @@ function ProfileTab({ player }) {
 
           <ProfileSection
             title="Trials and international experience"
-            rows={profileRows(profile.overseas, [["Played or lived outside home country", "experience"]])}
+            rows={profileRows(profile.overseas, [
+              ["Played or lived outside home country", "experience"],
+            ])}
           >
             {trials.length > 0 && (
               <div className="cv-repeat-list">
                 {trials.map((trial, index) => (
-                  <article className="cv-repeat-entry" key={`${trial.club || "trial"}-${index}`}>
+                  <article
+                    className="cv-repeat-entry"
+                    key={`${trial.club || "trial"}-${index}`}
+                  >
                     <h3>{trial.club || "Trial"}</h3>
                     <dl className="cv-detail-list">
                       {profileRows(trial, [
@@ -734,7 +884,10 @@ function ProfileTab({ player }) {
                         ["Length of trial", "duration"],
                         ["Outcome", "outcome"],
                       ]).map(([label, value]) => (
-                        <div key={label}><dt>{label}</dt><dd>{value}</dd></div>
+                        <div key={label}>
+                          <dt>{label}</dt>
+                          <dd>{value}</dd>
+                        </div>
                       ))}
                     </dl>
                   </article>
@@ -746,11 +899,28 @@ function ProfileTab({ player }) {
           {hasProfilePhotos && (
             <ProfileSection title="Player photos" rows={[]}>
               <div className="cv-photo-groups">
-                <ProfilePhotoGroup title="Professional headshot" photos={photos.professionalHeadshot} />
-                <ProfilePhotoGroup title="Full-body photo" photos={photos.fullBody} />
-                <ProfilePhotoGroup title="Competitive match action" photos={photos.action?.length ? photos.action : player.imageUrl} />
-                <ProfilePhotoGroup title="Current club kit" photos={photos.currentClubKit} />
-                <ProfilePhotoGroup title="Recent matches and training" photos={photos.recentMatchesTraining} />
+                <ProfilePhotoGroup
+                  title="Professional headshot"
+                  photos={photos.professionalHeadshot}
+                />
+                <ProfilePhotoGroup
+                  title="Full-body photo"
+                  photos={photos.fullBody}
+                />
+                <ProfilePhotoGroup
+                  title="Competitive match action"
+                  photos={
+                    photos.action?.length ? photos.action : player.imageUrl
+                  }
+                />
+                <ProfilePhotoGroup
+                  title="Current club kit"
+                  photos={photos.currentClubKit}
+                />
+                <ProfilePhotoGroup
+                  title="Recent matches and training"
+                  photos={photos.recentMatchesTraining}
+                />
               </div>
             </ProfileSection>
           )}
@@ -794,13 +964,21 @@ export default function MediaExperience({
 }) {
   const [viewerSessionId, setViewerSessionId] = useState("");
   const player = data.player;
-  const playerName = [player.firstName, player.lastName].filter(Boolean).join(" ");
+  const playerName = [player.firstName, player.lastName]
+    .filter(Boolean)
+    .join(" ");
   const portrait = player.headshotUrl || player.imageUrl?.[0];
-  const photos = [...new Set([...(player.imageUrl || []), player.headshotUrl].filter(Boolean))];
+  const photos = [
+    ...new Set(
+      [...(player.imageUrl || []), player.headshotUrl].filter(Boolean),
+    ),
+  ];
   const playlists = data.playlists
     .map((playlist) => ({
       ...playlist,
-      media: data.media.filter((item) => item.playlistIds.includes(playlist.id)),
+      media: data.media.filter((item) =>
+        item.playlistIds.includes(playlist.id),
+      ),
     }))
     .filter((playlist) => playlist.media.length > 0);
   const galleryState = {
@@ -820,7 +998,8 @@ export default function MediaExperience({
   }, [token]);
 
   useEffect(() => {
-    if (viewerSessionId) reportPortalActivity(token, "PAGE_VIEW", viewerSessionId);
+    if (viewerSessionId)
+      reportPortalActivity(token, "PAGE_VIEW", viewerSessionId);
   }, [token, viewerSessionId]);
 
   function reportVideoPlay(mediaId) {
@@ -830,7 +1009,11 @@ export default function MediaExperience({
   return (
     <main className="portal-shell">
       <header className="portal-header">
-        <a className="brand-lockup" href="https://footballbank.soccer" aria-label="FootballBank International home">
+        <a
+          className="brand-lockup"
+          href="https://footballbank.soccer"
+          aria-label="FootballBank International home"
+        >
           <img src="/logo/logo3.png" alt="" className="brand-logo" />
           <span className="brand-wordmark">
             <strong>FootballBank</strong>
@@ -838,9 +1021,10 @@ export default function MediaExperience({
           </span>
         </a>
         <nav className="mini-nav" aria-label="Player portfolio">
-          {NAV_ITEMS.filter((item) =>
-            (item.id !== "playlists" || playlists.length > 0)
-            && (item.id !== "documentation" || data.allowDocumentAccess)
+          {NAV_ITEMS.filter(
+            (item) =>
+              (item.id !== "playlists" || playlists.length > 0) &&
+              (item.id !== "documentation" || data.allowDocumentAccess),
           ).map((item) => (
             <Link
               key={item.id}
@@ -856,28 +1040,46 @@ export default function MediaExperience({
         </nav>
         <span className="private-badge">
           <span className="private-dot" />
-          <span>Private access · {new Intl.DateTimeFormat("en-GB", {
-            day: "numeric",
-            month: "short",
-            year: "numeric",
-            timeZone: "UTC",
-          }).format(new Date(data.shareExpiresAt))}</span>
+          <span>
+            Private access ·{" "}
+            {new Intl.DateTimeFormat("en-GB", {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+              timeZone: "UTC",
+            }).format(new Date(data.shareExpiresAt))}
+          </span>
         </span>
       </header>
 
       {activePage !== "profile" && (
         <section className="player-banner">
           {portrait ? (
-            <img className="player-portrait" src={portrait} alt={`${playerName} portrait`} />
+            <img
+              className="player-portrait"
+              src={portrait}
+              alt={`${playerName} portrait`}
+            />
           ) : (
-            <div className="player-portrait portrait-fallback" aria-hidden="true">
+            <div
+              className="player-portrait portrait-fallback"
+              aria-hidden="true"
+            >
               {(player.firstName?.[0] || "") + (player.lastName?.[0] || "")}
             </div>
           )}
           <div className="player-intro">
             <p className="eyebrow">Player portfolio</p>
             <h1>{playerName}</h1>
-            <p>{[player.position, player.currentClub || "Independent", player.country].filter(Boolean).join(" · ")}</p>
+            <p>
+              {[
+                player.position,
+                player.currentClub || "Independent",
+                player.country,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
           </div>
         </section>
       )}

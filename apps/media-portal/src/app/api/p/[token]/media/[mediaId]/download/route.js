@@ -79,13 +79,11 @@ export async function GET(_request, { params }) {
 
     const signedDownload = createSignedVideoDownloadUrl({
       cdnHostname,
-      tokenKey: cdnTokenKey,
+      cdnTokenKey,
       videoId: asset.bunnyVideoId,
       shareExpiresAt: share.expiresAt,
     });
-    console.log(asset.bunnyVideoId);
-    console.log(signedDownload);
-    
+
     if (!signedDownload) {
       console.error("Bunny CDN video download URL could not be signed; check the CDN hostname and video ID configuration.");
       return Response.json({ error: "Secure video downloads could not be configured. Ask the administrator to check the Bunny CDN hostname and video settings." }, {
